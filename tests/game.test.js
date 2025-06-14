@@ -1,4 +1,4 @@
-const { calculateScore } = require('../src/game');
+const { calculateScore, calculateLevel } = require('../src/game');
 
 describe('calculateScore', () => {
   test('1 line', () => {
@@ -15,5 +15,20 @@ describe('calculateScore', () => {
   });
   test('no lines', () => {
     expect(calculateScore(0, 50)).toBe(50);
+  });
+});
+
+describe('calculateLevel', () => {
+  test('0 lines -> level 1', () => {
+    expect(calculateLevel(0)).toBe(1);
+  });
+  test('9 lines -> level 1', () => {
+    expect(calculateLevel(9)).toBe(1);
+  });
+  test('10 lines -> level 2', () => {
+    expect(calculateLevel(10)).toBe(2);
+  });
+  test('25 lines -> level 3', () => {
+    expect(calculateLevel(25)).toBe(3);
   });
 });
