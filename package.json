@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "webpack serve",
+    "prebuild": "node scripts/prebuild.js",
     "build": "webpack",
     "test": "jest"
   },
