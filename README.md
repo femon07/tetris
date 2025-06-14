@@ -34,6 +34,8 @@ npm test
 ```
 https://femon07.github.io/tetris/
 ```
+GitHub リポジトリの設定画面で Pages の Source を `gh-pages` ブランチにし、公開フォルダをルートに設定します。
+main ブランチへ push すると `.github/workflows/deploy.yml` が `dist` ディレクトリを `gh-pages` ブランチへ自動で配置するため、利用者は特別な操作を行わなくても Pages を公開できます。
 
 ## 操作方法
 - 左右矢印キー: ブロック移動
