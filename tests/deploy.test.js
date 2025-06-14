@@ -9,5 +9,6 @@ describe('deploy workflow', () => {
     expect(branches).toContain('main');
     const uses = config.jobs.build.steps.map(s => s.uses).filter(Boolean);
     expect(uses).toContain('peaceiris/actions-gh-pages@v3');
+    expect(config.permissions.contents).toBe('write');
   });
 });
