@@ -20,7 +20,7 @@ npm ci
 ```bash
 npm run build
 ```
-ビルド後は `dist/main.js` が生成されます。開発中は次のコマンドでローカルサーバを起動できます。
+ビルド後は `dist/main.js` と `dist/index.html` が生成されます。開発中は次のコマンドでローカルサーバを起動できます。
 ```bash
 npm start
 ```
