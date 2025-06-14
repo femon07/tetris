@@ -1,0 +1,1 @@
+(()=>{var r={397:r=>{r.exports={calculateScore:function(r,t=0){return t+({1:40,2:100,3:300,4:1200}[r]||0)}}}},t={};!function e(o){var n=t[o];if(void 0!==n)return n.exports;var u=t[o]={exports:{}};return r[o](u,u.exports,e),u.exports}(397)})();
