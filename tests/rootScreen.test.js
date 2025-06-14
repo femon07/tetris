@@ -7,8 +7,8 @@ describe('ルート画面でテトリスが表示される', () => {
   });
 
   test('index.htmlがmain.jsを参照し、ファイルが存在する', () => {
-    const html = fs.readFileSync('index.html', 'utf8');
+    const html = fs.readFileSync('dist/index.html', 'utf8');
     expect(html).toMatch(/<script src="\.\/main.js"><\/script>/);
-    expect(fs.existsSync('main.js')).toBe(true);
+    expect(fs.existsSync('dist/main.js')).toBe(true);
   });
 });
