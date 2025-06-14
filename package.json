@@ -9,7 +9,7 @@
     "prebuild": "node scripts/prebuild.js",
     "build": "webpack",
     "test": "jest",
-    "postbuild": "cp index.html dist/index.html && mkdir -p docs && cp dist/index.html docs/index.html && cp dist/main.js docs/main.js"
+    "postbuild": "cp index.html dist/index.html && mkdir -p docs && cp dist/index.html docs/index.html && cp dist/main.js docs/main.js && cp dist/main.js main.js"
   },
   "keywords": [],
   "author": "",
