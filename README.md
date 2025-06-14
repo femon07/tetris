@@ -30,9 +30,9 @@ npm start
 npm test
 ```
 
-## デプロイ例（GitHub Pages）
+## GitHub Pages
 ```
-https://<ユーザー名>.github.io/<リポジトリ名>/
+https://femon07.github.io/tetris/
 ```
 
 ## 操作方法
