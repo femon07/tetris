@@ -3,6 +3,10 @@ function calculateScore(linesCleared, currentScore = 0) {
   return currentScore + (scoreTable[linesCleared] || 0);
 }
 
+function calculateLevel(totalLines, linesPerLevel = 10) {
+  return Math.floor(totalLines / linesPerLevel) + 1;
+}
+
 function initGame() {
   const canvas = document.getElementById('game');
   if (!canvas) return;
@@ -165,4 +169,4 @@ if (typeof window !== 'undefined') {
   window.addEventListener('DOMContentLoaded', initGame);
 }
 
-module.exports = { calculateScore, initGame };
+module.exports = { calculateScore, calculateLevel, initGame };
