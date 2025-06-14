@@ -93,6 +93,15 @@ function initGame() {
   function playerReset() {
     piece = createPiece();
     if (collide(board, piece)) {
+      // ゲームオーバー時の処理
+      alert('ゲームオーバー！');
+      board.forEach((row) => row.fill(0));
+      // スコアやレベルをリセットする場合はここに追加
+    }
+    // 新しいピースが配置可能か確認
+    if (collide(board, piece)) {
+      // それでも衝突する場合はゲームオーバー
+      alert('ゲームオーバー！');
       board.forEach((row) => row.fill(0));
     }
   }
@@ -140,21 +149,40 @@ function initGame() {
   function update(time = 0) {
     const delta = time - lastTime;
     lastTime = time;
+    
+    // ドロップ速度を調整（ミリ秒）
+    dropInterval = Math.max(100, 1000 - (Math.floor(calculateLevel(0) - 1) * 100));
+    
     dropCounter += delta;
     if (dropCounter > dropInterval) {
       playerDrop();
+      dropCounter = 0;
     }
+    
     draw();
+    
     if (typeof requestAnimationFrame === 'function') {
       requestAnimationFrame(update);
     }
   }
 
+  // キーリピートを無効にする
+  const keys = {};
   document.addEventListener('keydown', (event) => {
+    if (keys[event.key]) return; // すでに押されているキーは無視
+    keys[event.key] = true;
+    
     if (event.key === 'ArrowLeft') playerMove(-1);
     else if (event.key === 'ArrowRight') playerMove(1);
     else if (event.key === 'ArrowDown') playerDrop();
     else if (event.key === 'ArrowUp') playerRotate(1);
+    
+    // 即時反映
+    draw();
+  });
+  
+  document.addEventListener('keyup', (event) => {
+    keys[event.key] = false;
   });
 
   playerReset();
