@@ -1,6 +1,7 @@
 {
   "name": "tetris",
   "version": "1.0.0",
+  "homepage": "https://femon07.github.io/tetris",
   "description": "",
   "main": "index.js",
   "scripts": {
