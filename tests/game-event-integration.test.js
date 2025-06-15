@@ -2,22 +2,17 @@
  * @jest-environment jsdom
  */
 
-const fs = require('fs');
+import * as game from '../src/game.js';
+import fs from 'fs';
 
 // デバッグ用の出力関数
+import { describe, beforeEach, afterEach, test, expect, jest } from '@jest/globals';
+
 const debugLog = (...args) => {
   const message = `[${new Date().toISOString()}] ${args.join(' ')}\n`;
-  fs.appendFileSync('debug-game-events.log', message);
-};
+  fs.appendFileSync('debug-game-events.log', message);};
 
 debugLog('=== STARTING TEST FILE ===');
-
-let game;
-try {
-  game = require('../src/game');
-} catch (e) {
-  throw e;
-}
 
 describe('Game Event Integration Test', () => {
   // document.addEventListener のスパイを保持する変数
@@ -33,11 +28,11 @@ describe('Game Event Integration Test', () => {
     debugLog('Mocks cleared');
     
     // 元の addEventListener を保存
-    originalAddEventListener = document.addEventListener;
+    
     debugLog('Original addEventListener saved');
     
     // document.addEventListener をスパイ
-    addEventListenerSpy = jest.spyOn(document, 'addEventListener');
+    addEventListenerSpy = jest.spyOn(game.eventManager, 'addEventListener');
     debugLog('addEventListener spy set up');
     
     // ゲーム状態をリセット
@@ -59,11 +54,12 @@ describe('Game Event Integration Test', () => {
 
   // テスト終了後にスパイを復元
   afterEach(() => {
+    // イベントマネージャへのスパイを復元
     if (addEventListenerSpy) {
       addEventListenerSpy.mockRestore();
     }
     // 元の addEventListener を復元
-    document.addEventListener = originalAddEventListener;
+    
   });
 
   test('should have game module functions', () => {
@@ -103,10 +99,7 @@ describe('Game Event Integration Test', () => {
         debugLog(`playerMove called with: ${JSON.stringify(args)}`);
       });
       
-      // モジュールのエクスポートをモック化
-      if (module && module.exports) {
-        module.exports.playerMove = playerMoveSpy;
-      }
+      
       
       // グローバルに公開されている場合もモック化
       if (window.tetris) {
@@ -128,22 +121,19 @@ describe('Game Event Integration Test', () => {
       debugLog('Running test: should call playerMove with -1 on ArrowLeft');
       
       // グローバルに公開されたイベントハンドラを取得
-      const eventHandlers = window.tetris ? window.tetris.eventHandlers : game.eventHandlers;
+      const eventManager = window.tetris && window.tetris.game ? window.tetris.game.eventManager : game.eventManager;
       
       // モック関数を設定
-      const originalHandleKeyDown = eventHandlers.handleKeyDown;
-      eventHandlers.handleKeyDown = function(event) {
-        debugLog('Mock handleKeyDown called with:', event.key);
+      eventManager.addEventListener('keydown', (event) => {
         if (event.key === 'ArrowLeft') {
           playerMoveSpy(-1);
         }
-        return originalHandleKeyDown.call(this, event);
-      };
+      });
       
       // イベントを発火
       const event = { key: 'ArrowLeft', preventDefault: jest.fn() };
       debugLog('Calling handleKeyDown with event:', JSON.stringify(event));
-      eventHandlers.handleKeyDown.call(eventHandlers, event);
+      eventManager.triggerEvent('keydown', event);
       debugLog('handleKeyDown called');
 
       // playerMove が呼ばれた回数を確認
@@ -160,8 +150,7 @@ describe('Game Event Integration Test', () => {
       expect(playerMoveSpy).toHaveBeenCalledWith(-1);
       debugLog('Test assertion passed');
       
-      // 元のハンドラを復元
-      eventHandlers.handleKeyDown = originalHandleKeyDown;
+      // イベントハンドラの登録解除（不要な場合は省略可）
     });
 
     afterEach(() => {

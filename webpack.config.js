@@ -1,7 +1,14 @@
-const path = require('path');
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-module.exports = {
-  entry: './src/game.js',
+// ESモジュールの__dirnameをエミュレート
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+export default {
+  // エントリーポイントをsrc/index.jsに変更
+  entry: './src/index.js',
   output: {
     filename: 'main.js',
     path: path.resolve(__dirname, 'dist'),
@@ -26,5 +33,28 @@ module.exports = {
         warnings: false,
       },
     },
+  },
+  // モジュール解決の設定を追加
+  resolve: {
+    extensions: ['.js', '.jsx', '.json'],
+  },
+  // モジュールルールを追加
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: ['@babel/preset-env'],
+          },
+        },
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
+      },
+    ],
   },
 };

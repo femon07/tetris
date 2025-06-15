@@ -1,11 +1,4 @@
-function calculateScore(linesCleared, currentScore = 0) {
-  const scoreTable = { 1: 40, 2: 100, 3: 300, 4: 1200 };
-  return currentScore + (scoreTable[linesCleared] || 0);
-}
-
-function calculateLevel(totalLines, linesPerLevel = 10) {
-  return Math.floor(totalLines / linesPerLevel) + 1;
-}
+import { eventManager } from './event/EventManager';
 
 // ゲームの状態を管理するオブジェクト
 const gameState = {
@@ -29,8 +22,21 @@ const gameState = {
   lastTime: 0,
   isGameOver: false,
   gameLoopId: null,
-  ctx: null
+  ctx: null,
+  score: 0,
+  lines: 0,
+  level: 1
 };
+
+// ユーティリティ関数
+export function calculateScore(linesCleared, currentScore = 0) {
+  const scoreTable = { 1: 40, 2: 100, 3: 300, 4: 1200 };
+  return currentScore + (scoreTable[linesCleared] || 0) * gameState.level;
+}
+
+export function calculateLevel(totalLines, linesPerLevel = 10) {
+  return Math.floor(totalLines / linesPerLevel) + 1;
+}
 
 function initGame() {
   const canvas = document.getElementById('game');
@@ -288,102 +294,134 @@ function update(time = 0) {
     if (typeof requestAnimationFrame === 'function') {
       gameState.gameLoopId = requestAnimationFrame(update);
     }
-  }
-
-// キーリピート抑制用の状態
 const keys = {};
 
-// イベントハンドラをモジュールの公開メンバーとして定義
-const eventHandlers = {
-  handleKeyDown: function(event) {
-    if (gameState.isGameOver) return;
-    keys[event.key] = true;
-    // テスト環境では、モック関数が正しく呼び出されるようにする
-    switch (event.key) {
-      case 'ArrowLeft': 
-        if (typeof module !== 'undefined' && module.exports) {
-          module.exports.playerMove(-1);
-        } else if (window.tetris) {
-          window.tetris.playerMove(-1);
-        }
-        break;
-      case 'ArrowRight': 
-        if (typeof module !== 'undefined' && module.exports) {
-          module.exports.playerMove(1);
-        } else if (window.tetris) {
-          window.tetris.playerMove(1);
-        }
-        break;
-      case 'ArrowDown': 
-        if (typeof module !== 'undefined' && module.exports) {
-          module.exports.playerDrop();
-        } else if (window.tetris) {
-          window.tetris.playerDrop();
-        }
-        break;
-      case 'ArrowUp': 
-        if (typeof module !== 'undefined' && module.exports) {
-          module.exports.playerRotate(1);
-        } else if (window.tetris) {
-          window.tetris.playerRotate(1);
-        }
-        break;
-      case 'Escape': 
-        if (typeof module !== 'undefined' && module.exports) {
-          module.exports.gameOver();
-        } else if (window.tetris) {
-          window.tetris.gameOver();
-        }
-        break;
-    }
-  },
+// キーハンドラ関数
+export function handleKeyDown(event) {
+  if (gameState.isGameOver) return;
 
-  handleKeyUp: function(event) {
-    keys[event.key] = false;
+  // キーリピートを防ぐ
+  if (event.repeat) return;
+  
+  // キーが押されている間は押しっぱなしにしない
+  if (keys[event.key]) return;
+  keys[event.key] = true;
+
+  // キーに応じた処理
+  switch (event.key) {
+    case 'ArrowLeft':
+      playerMove(-1);
+      break;
+    case 'ArrowRight':
+      playerMove(1);
+      break;
+    case 'ArrowDown':
+      playerDrop();
+      break;
+    case 'ArrowUp':
+      playerRotate(1);
+      break;
+    case ' ':
+      // ハードドロップ
+      while (!gameState.isGameOver) {
+        const pieceY = gameState.piece.pos.y;
+        playerDrop();
+        if (pieceY === gameState.piece.pos.y) break;
+      }
+      break;
+    case 'p':
+    case 'P':
+      // 一時停止
+      if (gameState.gameLoopId) {
+        cancelAnimationFrame(gameState.gameLoopId);
+        gameState.gameLoopId = null;
+      } else {
+        gameState.lastTime = 0;
+        gameState.gameLoopId = requestAnimationFrame(update);
+      }
+      break;
+    case 'r':
+    case 'R':
+      // リセット
+      resetGame();
+      break;
   }
+}
+
+export function handleKeyUp(event) {
+  keys[event.key] = false;
+}
+
+// イベントリスナーの設定
+export function setupEventListeners() {
+  // キーボードイベントの登録
+  eventManager.addEventListener('keydown', handleKeyDown);
+  eventManager.addEventListener('keyup', handleKeyUp);
+  
+  // テスト用にグローバルに公開
+  if (typeof window !== 'undefined') {
+    window.tetris = window.tetris || {};
+    window.tetris.eventManager = eventManager;
+    window.tetris.handleKeyDown = handleKeyDown;
+    window.tetris.handleKeyUp = handleKeyUp;
+  }
+}
+
+// ゲーム初期化
+export function init() {
+  initGame();
+  setupEventListeners();
+  resetGame();
+  return {
+    gameState,
+    handleKeyDown,
+    handleKeyUp,
+    eventManager
+  };
+}
+
+// モジュールの公開メンバーをエクスポート
+export {
+  // 主要な関数
+  init,
+  playerMove,
+  playerRotate,
+  playerDrop,
+  resetGame,
+  initGame,
+  
+  // 状態
+  gameState,
+  
+  // イベント関連
+  setupEventListeners,
+  handleKeyDown,
+  handleKeyUp,
+  eventManager,
+  
+  // ユーティリティ関数
+  calculateScore,
+  calculateLevel,
+  
+  // テスト用に内部関数もエクスポート
+  merge as _merge,
+  collide as _collide,
+  rotate as _rotate,
+  clearLines as _clearLines,
+  createPiece as _createPiece
 };
 
 // テスト用にグローバルに公開
 if (typeof window !== 'undefined') {
   window.tetris = window.tetris || {};
-  window.tetris.eventHandlers = eventHandlers;
+  window.tetris.game = {
+    init,
+    gameState,
+    handleKeyDown,
+    handleKeyUp,
+    eventManager
+  };
 }
-
-// イベントリスナーの設定
-function setupEventListeners() {
-  // 既存のイベントリスナーを削除
-  document.removeEventListener('keydown', eventHandlers.handleKeyDown);
-  document.removeEventListener('keyup', eventHandlers.handleKeyUp);
-  document.addEventListener('keydown', eventHandlers.handleKeyDown);
-  document.addEventListener('keyup', eventHandlers.handleKeyUp);
-  
-  // テスト用にグローバルに公開
-  if (typeof window !== 'undefined') {
-    window.tetris = window.tetris || {};
-    window.tetris.eventHandlers = eventHandlers;
-  }
-}
-
-// モジュールの公開メンバーとしてハンドラ・主要関数・状態をエクスポート
-module.exports = {
-  eventHandlers,
-  playerMove,
-  playerRotate,
-  playerDrop,
-  setupEventListeners,
-  gameState,
-  resetGame,
-  initGame,
-  draw,
-  drawMatrix,
-  update,
-  // ロジック関数を追加
-  calculateScore,
-  calculateLevel,
-  createPiece,
-  collide,
-  clearLines
-};
 
 // ゲームのスタート（ブラウザ実行時のみ）
 if (typeof document !== 'undefined' && typeof window !== 'undefined') {

@@ -2,23 +2,24 @@
   "name": "tetris",
   "version": "1.0.0",
   "homepage": "https://femon07.github.io/tetris",
-  "description": "",
-  "main": "index.js",
+  "description": "A modern Tetris game with clean architecture and testable design",
+  "type": "module",
   "scripts": {
     "start": "webpack serve",
     "prebuild": "node scripts/prebuild.js",
     "build": "webpack",
-    "test": "jest --verbose --no-cache",
-    "test:watch": "jest --watch",
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --verbose --no-cache",
+    "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch",
+    "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "clean": "rimraf dist docs",
     "postbuild": "npm run copy-files",
     "copy-files": "cpx \"index.html\" dist && cpx \"dist/index.html\" docs && cpx \"dist/main.js\" docs && cpx \"dist/main.js\" ."
   },
-  "keywords": [],
+  "keywords": ["tetris", "game", "javascript", "esmodules"],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "@babel/core": "^7.27.4",
     "@babel/plugin-transform-runtime": "^7.27.4",
     "@babel/preset-env": "^7.27.2",
@@ -28,14 +29,35 @@
     "babel-jest": "^29.7.0",
     "babel-loader": "^10.0.0",
     "cpx": "^1.5.0",
+    "css-loader": "^6.10.0",
     "jest": "^29.7.0",
     "jest-canvas-mock": "^2.5.2",
     "jest-environment-jsdom": "^29.7.0",
     "js-yaml": "^4.1.0",
     "jsdom": "^22.1.0",
     "rimraf": "^6.0.1",
+    "style-loader": "^3.3.4",
     "webpack": "^5.99.9",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.2"
+  },
+  "jest": {
+    "preset": "<rootDir>/jest.config.mjs"
+  },
+  "babel": {
+    "presets": [
+      ["@babel/preset-env", {
+        "targets": {
+          "node": "current"
+        },
+        "modules": "auto"
+      }]
+    ],
+    "plugins": [
+      ["@babel/plugin-transform-runtime", {
+        "regenerator": true
+      }]
+      
+    ]
   }
 }
