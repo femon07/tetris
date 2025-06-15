@@ -10,7 +10,7 @@ module.exports = {
   testMatch: ['**/tests/**/*.test.js'],
   
   // モジュールの拡張子
-  moduleFileExtensions: ['js', 'json', 'node', 'jsx', 'mjs'],
+  moduleFileExtensions: ['js', 'json', 'node'],
   
   // テストから除外するパス
   testPathIgnorePatterns: [
@@ -19,20 +19,24 @@ module.exports = {
   
   // モジュール名のマッピング
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '^jsdom$': '<rootDir>/node_modules/jsdom'
   },
   
-  // ESモジュールのトランスフォーム設定
+  // トランスフォーム設定
   transform: {
-    '^.+\\.(js|jsx|mjs)$': 'babel-jest',
+    '^.+\\.js$': 'babel-jest',
+  },
+  
+  // テスト環境オプション
+  testEnvironmentOptions: {
+    url: 'http://localhost'
   },
   
   // トランスフォームから除外するパス
   transformIgnorePatterns: [
-    '/node_modules/(?!(your-esm-dependencies)/)'
+    '/node_modules/(?!jsdom/)'
   ],
   
-
   // カバレッジ収集を無効化
   collectCoverage: false,
   

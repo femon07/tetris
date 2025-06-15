@@ -1,0 +1,29 @@
+/**
+ * 最小限のJest設定
+ * テスト検出と実行の基本機能のみを有効化
+ */
+module.exports = {
+  // テスト環境を指定
+  testEnvironment: 'jsdom',
+  
+  // テストファイルのパターン
+  testMatch: ['**/tests/**/*.test.js'],
+  
+  // モジュールの拡張子
+  moduleFileExtensions: ['js', 'json', 'node'],
+  
+  // テストから除外するパス
+  testPathIgnorePatterns: [
+    '/node_modules/'
+  ],
+  
+  // テスト環境オプション
+  testEnvironmentOptions: {
+    url: 'http://localhost',
+    pretendToBeVisual: true
+  },
+  
+  // テスト実行前に環境変数を設定
+  setupFilesAfterEnv: ['<rootDir>/tests/setupTests.js'],
+  reporters: [] // デフォルトのレポーターを無効にする
+};

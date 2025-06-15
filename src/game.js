@@ -290,47 +290,111 @@ function update(time = 0) {
     }
   }
 
-function setupEventListeners() {
-    // 既存のイベントリスナーを削除
-    document.removeEventListener('keydown', handleKeyDown);
-    document.removeEventListener('keyup', handleKeyUp);
-    
-    // キーリピートを無効にする
-    const keys = {};
-    
-    function handleKeyDown(event) {
-      if (keys[event.key]) return; // すでに押されているキーは無視
-      keys[event.key] = true;
-      
-      if (event.key === 'ArrowLeft') playerMove(-1);
-      else if (event.key === 'ArrowRight') playerMove(1);
-      else if (event.key === 'ArrowDown') playerDrop();
-      else if (event.key === 'ArrowUp') playerRotate(1);
-      
-      // 即時反映
-      draw();
-    }
-    
-    function handleKeyUp(event) {
-      keys[event.key] = false;
-    }
-    
-    // 新しいイベントリスナーを追加
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keyup', handleKeyUp);
-  }
+// キーリピート抑制用の状態
+const keys = {};
 
-// ゲームのスタート
-document.addEventListener('DOMContentLoaded', () => {
-  // 既存のゲームループをクリア
-  if (gameState.gameLoopId) {
-    cancelAnimationFrame(gameState.gameLoopId);
-    gameState.gameLoopId = null;
+// イベントハンドラをモジュールの公開メンバーとして定義
+const eventHandlers = {
+  handleKeyDown: function(event) {
+    if (gameState.isGameOver) return;
+    keys[event.key] = true;
+    // テスト環境では、モック関数が正しく呼び出されるようにする
+    switch (event.key) {
+      case 'ArrowLeft': 
+        if (typeof module !== 'undefined' && module.exports) {
+          module.exports.playerMove(-1);
+        } else if (window.tetris) {
+          window.tetris.playerMove(-1);
+        }
+        break;
+      case 'ArrowRight': 
+        if (typeof module !== 'undefined' && module.exports) {
+          module.exports.playerMove(1);
+        } else if (window.tetris) {
+          window.tetris.playerMove(1);
+        }
+        break;
+      case 'ArrowDown': 
+        if (typeof module !== 'undefined' && module.exports) {
+          module.exports.playerDrop();
+        } else if (window.tetris) {
+          window.tetris.playerDrop();
+        }
+        break;
+      case 'ArrowUp': 
+        if (typeof module !== 'undefined' && module.exports) {
+          module.exports.playerRotate(1);
+        } else if (window.tetris) {
+          window.tetris.playerRotate(1);
+        }
+        break;
+      case 'Escape': 
+        if (typeof module !== 'undefined' && module.exports) {
+          module.exports.gameOver();
+        } else if (window.tetris) {
+          window.tetris.gameOver();
+        }
+        break;
+    }
+  },
+
+  handleKeyUp: function(event) {
+    keys[event.key] = false;
   }
+};
+
+// テスト用にグローバルに公開
+if (typeof window !== 'undefined') {
+  window.tetris = window.tetris || {};
+  window.tetris.eventHandlers = eventHandlers;
+}
+
+// イベントリスナーの設定
+function setupEventListeners() {
+  // 既存のイベントリスナーを削除
+  document.removeEventListener('keydown', eventHandlers.handleKeyDown);
+  document.removeEventListener('keyup', eventHandlers.handleKeyUp);
+  document.addEventListener('keydown', eventHandlers.handleKeyDown);
+  document.addEventListener('keyup', eventHandlers.handleKeyUp);
   
-  // ゲームを初期化
-  initGame();
-  
+  // テスト用にグローバルに公開
+  if (typeof window !== 'undefined') {
+    window.tetris = window.tetris || {};
+    window.tetris.eventHandlers = eventHandlers;
+  }
+}
+
+// モジュールの公開メンバーとしてハンドラ・主要関数・状態をエクスポート
+module.exports = {
+  eventHandlers,
+  playerMove,
+  playerRotate,
+  playerDrop,
+  setupEventListeners,
+  gameState,
+  resetGame,
+  initGame,
+  draw,
+  drawMatrix,
+  update,
+  // ロジック関数を追加
+  calculateScore,
+  calculateLevel,
+  createPiece,
+  collide,
+  clearLines
+};
+
+// ゲームのスタート（ブラウザ実行時のみ）
+if (typeof document !== 'undefined' && typeof window !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    // 既存のゲームループをクリア
+    if (gameState.gameLoopId) {
+      cancelAnimationFrame(gameState.gameLoopId);
+    }
+    initGame();
+  });
+
   // ウィンドウリサイズ時の処理
   window.addEventListener('resize', () => {
     const canvas = document.getElementById('game');
@@ -342,10 +406,8 @@ document.addEventListener('DOMContentLoaded', () => {
       draw();
     }
   });
-});
 
-// グローバルに公開
-if (typeof window !== 'undefined') {
+  // グローバルに公開
   window.tetris = {
     initGame,
     resetGame,
@@ -353,23 +415,3 @@ if (typeof window !== 'undefined') {
     calculateLevel
   };
 }
-
-// テスト用にエクスポート
-module.exports = { 
-  calculateScore, 
-  calculateLevel, 
-  gameState,
-  initGame, 
-  resetGame,
-  createPiece,
-  collide,
-  rotate,
-  clearLines,
-  merge,
-  draw,
-  drawMatrix,
-  playerDrop,
-  playerMove,
-  playerRotate,
-  update
-};

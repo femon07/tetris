@@ -18,6 +18,10 @@ logs
 *.log
 npm-debug.log*
 yarn-debug.log*
+
+# Jest test results
+jest-result*.json
+jest-output.txt
 yarn-error.log*
 
 # Editor directories and files
