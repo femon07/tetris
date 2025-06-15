@@ -358,6 +358,18 @@ if (typeof window !== 'undefined') {
 module.exports = { 
   calculateScore, 
   calculateLevel, 
+  gameState,
   initGame, 
-  resetGame 
+  resetGame,
+  createPiece,
+  collide,
+  rotate,
+  clearLines,
+  merge,
+  draw,
+  drawMatrix,
+  playerDrop,
+  playerMove,
+  playerRotate,
+  update
 };
