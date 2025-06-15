@@ -11,11 +11,20 @@ module.exports = {
   devtool: 'inline-source-map',
   devServer: {
     static: {
-      directory: path.join(__dirname, '/'),
+      directory: path.join(__dirname, './'),
+      publicPath: '/',
+      watch: true,
     },
     compress: true,
     port: 8080,
     hot: true,
     open: true,
+    historyApiFallback: true,
+    client: {
+      overlay: {
+        errors: true,
+        warnings: false,
+      },
+    },
   },
 };
