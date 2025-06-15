@@ -5,7 +5,17 @@ module.exports = {
   output: {
     filename: 'main.js',
     path: path.resolve(__dirname, 'dist'),
-    publicPath: '',
+    publicPath: '/',
   },
-  mode: 'production',
+  mode: 'development',
+  devtool: 'inline-source-map',
+  devServer: {
+    static: {
+      directory: path.join(__dirname, '/'),
+    },
+    compress: true,
+    port: 8080,
+    hot: true,
+    open: true,
+  },
 };

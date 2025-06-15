@@ -1,0 +1,21 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@10.9.2
+2 info using node@v22.14.0
+3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\femur\OneDrive\work\wsl_work\tetris\.npmrc
+5 warn config cache-max This option has been deprecated in favor of `--prefer-online`
+6 warn config cache-min This option has been deprecated in favor of `--prefer-offline`.
+7 silly config load:file:C:\Users\femur\.npmrc
+8 silly config load:file:C:\Users\femur\AppData\Roaming\npm\etc\npmrc
+9 verbose title npm run build
+10 verbose argv "run" "build"
+11 verbose logfile logs-max:10 dir:C:\Users\femur\OneDrive\work\wsl_work\tetris\${HOME}\.npm\_logs\2025-06-14T14_25_04_169Z-
+12 verbose logfile C:\Users\femur\OneDrive\work\wsl_work\tetris\${HOME}\.npm\_logs\2025-06-14T14_25_04_169Z-debug-0.log
+13 silly logfile start cleaning logs, removing 1 files
+14 silly logfile done cleaning log files
+15 verbose cwd C:\Users\femur\OneDrive\work\wsl_work\tetris
+16 verbose os Windows_NT 10.0.26100
+17 verbose node v22.14.0
+18 verbose npm  v10.9.2
+19 verbose exit 0
+20 info ok

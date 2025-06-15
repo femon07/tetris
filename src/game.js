@@ -7,27 +7,13 @@ function calculateLevel(totalLines, linesPerLevel = 10) {
   return Math.floor(totalLines / linesPerLevel) + 1;
 }
 
-function initGame() {
-  const canvas = document.getElementById('game');
-  if (!canvas) return;
-
-  const COLS = 10;
-  const ROWS = 20;
-  const BLOCK = 20;
-
-  canvas.width = COLS * BLOCK;
-  canvas.height = ROWS * BLOCK;
-
-  let ctx;
-  try {
-    ctx = canvas.getContext('2d');
-  } catch (e) {
-    return; // 環境によっては未実装
-  }
-  if (!ctx) return;
-
-  const colors = ['#000', '#0ff', '#f0f', '#0f0', '#ff0', '#f00', '#00f', '#ffa500'];
-  const tetrominos = [
+// ゲームの状態を管理するオブジェクト
+const gameState = {
+  COLS: 10,
+  ROWS: 20,
+  BLOCK: 20,
+  colors: ['#000', '#0ff', '#f0f', '#0f0', '#ff0', '#f00', '#00f', '#ffa500'],
+  tetrominos: [
     [[1, 1, 1, 1]],
     [[2, 2], [2, 2]],
     [[0, 3, 0], [3, 3, 3]],
@@ -35,48 +21,156 @@ function initGame() {
     [[5, 5, 0], [0, 5, 5]],
     [[6, 0, 0], [6, 6, 6]],
     [[0, 0, 7], [7, 7, 7]],
-  ];
+  ],
+  board: [],
+  piece: null,
+  dropCounter: 0,
+  dropInterval: 1000,
+  lastTime: 0,
+  isGameOver: false,
+  gameLoopId: null,
+  ctx: null
+};
 
-  const board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-  let piece = createPiece();
-  let dropCounter = 0;
-  let dropInterval = 1000;
-  let lastTime = 0;
+function initGame() {
+  const canvas = document.getElementById('game');
+  if (!canvas) return;
 
-  function createPiece() {
-    const matrix = tetrominos[(Math.random() * tetrominos.length) | 0];
-    return { matrix, pos: { x: (COLS / 2) | 0 - (matrix[0].length / 2) | 0, y: 0 } };
+  // キャンバスのサイズを設定
+  const width = gameState.COLS * gameState.BLOCK;
+  const height = gameState.ROWS * gameState.BLOCK;
+  
+  // canvas要素のサイズを設定
+  canvas.width = width;
+  canvas.height = height;
+  
+  // スタイルも設定（高解像度ディスプレイ対応）
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+
+  // コンテキストを取得
+  try {
+    gameState.ctx = canvas.getContext('2d');
+    if (gameState.ctx) {
+      // 高解像度ディスプレイ対応
+      const dpr = window.devicePixelRatio || 1;
+      gameState.ctx.scale(dpr, dpr);
+    }
+  } catch (e) {
+    console.error('Canvas context could not be created:', e);
+    return;
+  }
+  
+  if (!gameState.ctx) return;
+
+  // ゲームの初期化
+  resetGame();
+  
+  // イベントリスナーの設定
+  setupEventListeners();
+  
+  // ゲームループを開始
+  gameState.gameLoopId = requestAnimationFrame(update);
+  
+  // テスト用にcanvas要素を返す
+  return canvas;
+}
+
+function resetGame() {
+  // ボードを初期化
+  gameState.board = Array.from({ length: gameState.ROWS }, () => Array(gameState.COLS).fill(0));
+  
+  // ゲーム状態をリセット
+  gameState.piece = createPiece();
+  gameState.dropCounter = 0;
+  gameState.lastTime = 0;
+  gameState.isGameOver = false;
+  gameState.score = 0;
+  gameState.lines = 0;
+  
+  // 既存のゲームループをキャンセル
+  if (gameState.gameLoopId) {
+    cancelAnimationFrame(gameState.gameLoopId);
+  }
+  
+  // 描画をクリア
+  if (gameState.ctx) {
+    gameState.ctx.clearRect(0, 0, gameState.COLS * gameState.BLOCK, gameState.ROWS * gameState.BLOCK);
+  }
+  
+  // 新しいピースが配置可能か確認
+  if (collide(gameState.board, gameState.piece)) {
+    // ゲーム開始時に配置できない場合はゲームオーバー
+    gameOver();
+  }
+}
+
+function gameOver() {
+  gameState.isGameOver = true;
+  if (confirm('ゲームオーバー！\nもう一度プレイしますか？')) {
+    resetGame();
+    // ゲームループを再開
+    gameState.gameLoopId = requestAnimationFrame(update);
+  }
+}
+
+function createPiece() {
+    const matrix = JSON.parse(JSON.stringify(gameState.tetrominos[(Math.random() * gameState.tetrominos.length) | 0]));
+    return { 
+      matrix, 
+      pos: { 
+        x: Math.floor((gameState.COLS - matrix[0].length) / 2), 
+        y: 0 
+      } 
+    };
   }
 
-  function drawMatrix(matrix, offset) {
+function drawMatrix(matrix, offset) {
     matrix.forEach((row, y) => {
       row.forEach((value, x) => {
         if (value) {
-          ctx.fillStyle = colors[value];
-          ctx.fillRect((x + offset.x) * BLOCK, (y + offset.y) * BLOCK, BLOCK - 1, BLOCK - 1);
+          gameState.ctx.fillStyle = gameState.colors[value];
+          gameState.ctx.fillRect(
+            (x + offset.x) * gameState.BLOCK, 
+            (y + offset.y) * gameState.BLOCK, 
+            gameState.BLOCK - 1, 
+            gameState.BLOCK - 1
+          );
         }
       });
     });
   }
 
-  function draw() {
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    drawMatrix(board, { x: 0, y: 0 });
-    drawMatrix(piece.matrix, piece.pos);
+function draw() {
+    if (!gameState.ctx) return;
+    
+    // キャンバスをクリア
+    gameState.ctx.fillStyle = '#000';
+    gameState.ctx.fillRect(0, 0, gameState.COLS * gameState.BLOCK, gameState.ROWS * gameState.BLOCK);
+    
+    // ボードと現在のピースを描画
+    drawMatrix(gameState.board, { x: 0, y: 0 });
+    if (gameState.piece) {
+      drawMatrix(gameState.piece.matrix, gameState.piece.pos);
+    }
   }
 
-  function merge(board, piece) {
+function merge(board, piece) {
     piece.matrix.forEach((row, y) => {
       row.forEach((value, x) => {
         if (value) {
-          board[y + piece.pos.y][x + piece.pos.x] = value;
+          const boardY = y + piece.pos.y;
+          const boardX = x + piece.pos.x;
+          if (boardY >= 0 && boardY < gameState.ROWS && 
+              boardX >= 0 && boardX < gameState.COLS) {
+            board[boardY][boardX] = value;
+          }
         }
       });
     });
   }
 
-  function collide(board, piece) {
+function collide(board, piece) {
     for (let y = 0; y < piece.matrix.length; ++y) {
       for (let x = 0; x < piece.matrix[y].length; ++x) {
         if (
@@ -90,23 +184,7 @@ function initGame() {
     return false;
   }
 
-  function playerReset() {
-    piece = createPiece();
-    if (collide(board, piece)) {
-      // ゲームオーバー時の処理
-      alert('ゲームオーバー！');
-      board.forEach((row) => row.fill(0));
-      // スコアやレベルをリセットする場合はここに追加
-    }
-    // 新しいピースが配置可能か確認
-    if (collide(board, piece)) {
-      // それでも衝突する場合はゲームオーバー
-      alert('ゲームオーバー！');
-      board.forEach((row) => row.fill(0));
-    }
-  }
-
-  function rotate(matrix, dir) {
+function rotate(matrix, dir) {
     for (let y = 0; y < matrix.length; ++y) {
       for (let x = 0; x < y; ++x) {
         [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
@@ -116,85 +194,170 @@ function initGame() {
     else matrix.reverse();
   }
 
-  function playerRotate(dir) {
-    const pos = piece.pos.x;
+function playerRotate(dir) {
+    if (gameState.isGameOver) return;
+    
+    const pos = gameState.piece.pos.x;
     let offset = 1;
-    rotate(piece.matrix, dir);
-    while (collide(board, piece)) {
-      piece.pos.x += offset;
+    rotate(gameState.piece.matrix, dir);
+    while (collide(gameState.board, gameState.piece)) {
+      gameState.piece.pos.x += offset;
       offset = -(offset + (offset > 0 ? 1 : -1));
-      if (offset > piece.matrix[0].length) {
-        rotate(piece.matrix, -dir);
-        piece.pos.x = pos;
+      if (offset > gameState.piece.matrix[0].length) {
+        rotate(gameState.piece.matrix, -dir);
+        gameState.piece.pos.x = pos;
         return;
       }
     }
   }
 
-  function playerMove(dir) {
-    piece.pos.x += dir;
-    if (collide(board, piece)) piece.pos.x -= dir;
-  }
-
-  function playerDrop() {
-    piece.pos.y++;
-    if (collide(board, piece)) {
-      piece.pos.y--;
-      merge(board, piece);
-      playerReset();
+function playerMove(dir) {
+    if (gameState.isGameOver) return;
+    
+    gameState.piece.pos.x += dir;
+    if (collide(gameState.board, gameState.piece)) {
+      gameState.piece.pos.x -= dir;
     }
-    dropCounter = 0;
   }
 
-  function update(time = 0) {
-    const delta = time - lastTime;
-    lastTime = time;
+function clearLines() {
+  let linesCleared = 0;
+  
+  outer: for (let y = gameState.ROWS - 1; y >= 0; y--) {
+    // 行がすべて埋まっているかチェック
+    for (let x = 0; x < gameState.COLS; x++) {
+      if (gameState.board[y][x] === 0) {
+        continue outer;
+      }
+    }
+    
+    // 行を削除して上にずらす
+    const row = gameState.board.splice(y, 1)[0].fill(0);
+    gameState.board.unshift(row);
+    y++;
+    linesCleared++;
+  }
+  
+  // スコアを更新
+  if (linesCleared > 0) {
+    gameState.score += calculateScore(linesCleared);
+    gameState.lines += linesCleared;
+    gameState.level = calculateLevel(gameState.lines);
+  }
+}
+
+function playerDrop() {
+  if (gameState.isGameOver) return;
+  
+  gameState.piece.pos.y++;
+  if (collide(gameState.board, gameState.piece)) {
+    gameState.piece.pos.y--;
+    merge(gameState.board, gameState.piece);
+    
+    // ラインが揃ったか確認
+    clearLines();
+    
+    // 新しいピースを生成
+    gameState.piece = createPiece();
+    
+    // ゲームオーバーチェック
+    if (collide(gameState.board, gameState.piece)) {
+      gameOver();
+    }
+  }
+  gameState.dropCounter = 0;
+}
+
+function update(time = 0) {
+    if (gameState.isGameOver) return;
+    
+    const delta = time - gameState.lastTime;
+    gameState.lastTime = time;
     
     // ドロップ速度を調整（ミリ秒）
-    dropInterval = Math.max(100, 1000 - (Math.floor(calculateLevel(0) - 1) * 100));
+    gameState.dropInterval = Math.max(100, 1000 - (Math.floor(calculateLevel(0) - 1) * 100));
     
-    dropCounter += delta;
-    if (dropCounter > dropInterval) {
+    gameState.dropCounter += delta;
+    if (gameState.dropCounter > gameState.dropInterval) {
       playerDrop();
-      dropCounter = 0;
+      gameState.dropCounter = 0;
     }
     
     draw();
     
     if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(update);
+      gameState.gameLoopId = requestAnimationFrame(update);
     }
   }
 
-  // キーリピートを無効にする
-  const keys = {};
-  document.addEventListener('keydown', (event) => {
-    if (keys[event.key]) return; // すでに押されているキーは無視
-    keys[event.key] = true;
+function setupEventListeners() {
+    // 既存のイベントリスナーを削除
+    document.removeEventListener('keydown', handleKeyDown);
+    document.removeEventListener('keyup', handleKeyUp);
     
-    if (event.key === 'ArrowLeft') playerMove(-1);
-    else if (event.key === 'ArrowRight') playerMove(1);
-    else if (event.key === 'ArrowDown') playerDrop();
-    else if (event.key === 'ArrowUp') playerRotate(1);
+    // キーリピートを無効にする
+    const keys = {};
     
-    // 即時反映
-    draw();
-  });
-  
-  document.addEventListener('keyup', (event) => {
-    keys[event.key] = false;
-  });
-
-  playerReset();
-  if (typeof requestAnimationFrame === 'function') {
-    update();
-  } else {
-    draw();
+    function handleKeyDown(event) {
+      if (keys[event.key]) return; // すでに押されているキーは無視
+      keys[event.key] = true;
+      
+      if (event.key === 'ArrowLeft') playerMove(-1);
+      else if (event.key === 'ArrowRight') playerMove(1);
+      else if (event.key === 'ArrowDown') playerDrop();
+      else if (event.key === 'ArrowUp') playerRotate(1);
+      
+      // 即時反映
+      draw();
+    }
+    
+    function handleKeyUp(event) {
+      keys[event.key] = false;
+    }
+    
+    // 新しいイベントリスナーを追加
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
   }
-}
 
+// ゲームのスタート
+document.addEventListener('DOMContentLoaded', () => {
+  // 既存のゲームループをクリア
+  if (gameState.gameLoopId) {
+    cancelAnimationFrame(gameState.gameLoopId);
+    gameState.gameLoopId = null;
+  }
+  
+  // ゲームを初期化
+  initGame();
+  
+  // ウィンドウリサイズ時の処理
+  window.addEventListener('resize', () => {
+    const canvas = document.getElementById('game');
+    if (canvas && gameState.ctx) {
+      // キャンバスのサイズを再設定
+      canvas.width = gameState.COLS * gameState.BLOCK;
+      canvas.height = gameState.ROWS * gameState.BLOCK;
+      // 再描画
+      draw();
+    }
+  });
+});
+
+// グローバルに公開
 if (typeof window !== 'undefined') {
-  window.addEventListener('DOMContentLoaded', initGame);
+  window.tetris = {
+    initGame,
+    resetGame,
+    calculateScore,
+    calculateLevel
+  };
 }
 
-module.exports = { calculateScore, calculateLevel, initGame };
+// テスト用にエクスポート
+module.exports = { 
+  calculateScore, 
+  calculateLevel, 
+  initGame, 
+  resetGame 
+};

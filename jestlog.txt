@@ -1,0 +1,20 @@
+npm warn config cache-max This option has been deprecated in favor of `--prefer-online`
+npm warn config cache-min This option has been deprecated in favor of `--prefer-offline`.
+FAIL __tests__/minimal.test.js
+  ● Test suite failed to run
+
+    ReferenceError: afterEach is not defined
+
+    [0m [90m 96 |[39m   localStorage[33m.[39mclear()[33m;[39m
+     [90m 97 |[39m   jest[33m.[39mclearAllMocks()[33m;[39m
+    [31m[1m>[22m[39m[90m 98 |[39m })[33m;[39m
+     [90m    |[39m [31m[1m^[22m[39m
+     [90m 99 |[39m[0m
+
+      at Object.<anonymous> (jest.setup.js:98:1)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        0.386 s
+Ran all test suites matching /__tests__\\minimal.test.js/i.
