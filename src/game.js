@@ -69,165 +69,197 @@ export function updateLevelDisplay(level) {
   const levelElement = document.getElementById('level');
   if (levelElement) {
     levelElement.innerText = level;
-  // 回転を試みる
-  rotate(gameState.piece.matrix, dir);
-  console.log('playerRotate: 回転後のピース行列', { rotatedMatrix: JSON.stringify(gameState.piece.matrix) });
-  
-  // 壁や他のブロックと衝突する場合の処理
-  while (collide(gameState.board, gameState.piece)) {
-    console.log('playerRotate: 衝突を検出、オフセットを試みます', { offset, currentX: gameState.piece.pos.x });
-    
-    gameState.piece.pos.x += offset;
-    offset = -(offset + (offset > 0 ? 1 : -1));
-    
-    // オフセットが行列の幅を超えたら回転を元に戻す
-    if (Math.abs(offset) > gameState.piece.matrix[0].length) {
-      console.log('playerRotate: 有効な位置が見つかりませんでした、回転をキャンセルします。元の行列に戻します。');
-      gameState.piece.matrix = originalMatrix; // 元の行列に戻す
-      gameState.piece.pos.x = pos;
-      console.log('playerRotate: 回転キャンセル後のピース行列', { finalMatrix: JSON.stringify(gameState.piece.matrix) });
-      return;
-    }
   }
-  
-  console.log('playerRotate: 回転が完了しました', { newPos: gameState.piece.pos, finalMatrix: JSON.stringify(gameState.piece.matrix) });
 }
 
-function playerMove(dir) {
+// ゲームの状態を管理するオブジェクト
+export const gameState = {
+  // ゲームの基本設定
+  COLS: 10,
+  ROWS: 20,
+  BLOCK: 30, // 各ブロックのサイズ（ピクセル）
+  // ゲームの状態変数
+  board: [],
+  piece: null,
+  nextPiece: null,
+  score: 0,
+  lines: 0,
+  level: 1,
+  dropCounter: 0,
+  dropInterval: 1000, // ピースが自動で落ちる間隔（ミリ秒）
+  lastTime: 0,
+  gameLoopId: null,
+  isGameOver: false,
+  // キー入力の状態管理
+  keys: {},
+  // ゲームの一時停止状態
+  paused: false,
+
+  // ゲームの状態を初期化する関数
+  initBoard() {
+    this.board = Array(this.ROWS).fill(0).map(() => Array(this.COLS).fill(0));
+  },
+
+  // ログ出力関数
+  logState() {
+    console.log('Current Game State:', {
+      score: this.score,
+      lines: this.lines,
+      level: this.level,
+      isGameOver: this.isGameOver,
+      piece: this.piece ? { matrix: this.piece.matrix, pos: this.piece.pos } : null,
+      nextPiece: this.nextPiece ? { matrix: this.nextPiece.matrix } : null,
+    });
+  }
+};
+
+// イベントマネージャーの作成
+export const eventManager = new EventTarget();
+
+// ゲームを初期化する関数
+export function initGame() {
+  console.log('initGame: ゲームの初期化を開始します');
+  const canvas = document.getElementById('game');
+  if (!canvas) {
+    console.error('Canvas要素が見つかりません');
+    return null;
+  }
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    console.error('2Dコンテキストの取得に失敗しました');
+    return null;
+  }
+
+  // キャンバスのサイズを設定
+  canvas.width = gameState.COLS * gameState.BLOCK;
+  canvas.height = gameState.ROWS * gameState.BLOCK;
+
+  // グローバルなコンテキストとキャンバスをgameStateに保存
+  gameState.ctx = ctx;
+  gameState.canvas = canvas;
+
+  console.log('initGame: キャンバスとコンテキストの初期化が完了しました');
+  return canvas;
+}
+
+// ゲームをリセットする関数
+export function resetGame() {
+  console.log('resetGame: ゲームをリセットします');
+  tetrisGame.reset();
+  gameState.score = tetrisGame.score;
+  gameState.lines = tetrisGame.lines;
+  gameState.level = tetrisGame.level;
+  gameState.isGameOver = tetrisGame.isGameOver;
+  gameState.piece = tetrisGame.piece;
+  gameState.nextPiece = tetrisGame.nextPiece;
+  gameState.board = tetrisGame.board.grid;
+  gameState.dropCounter = 0;
+  gameState.lastTime = 0;
+  gameState.gameLoopId = null;
+  gameState.paused = false;
+  updateScoreDisplay(gameState.score);
+  updateLinesDisplay(gameState.lines);
+  updateLevelDisplay(gameState.level);
+  draw(gameState.ctx, gameState.board, gameState.piece, gameState.nextPiece, tetrisGame.colors, gameState.BLOCK);
+  console.log('resetGame: ゲームのリセットが完了しました');
+}
+
+// ピースをドロップする関数
+export function playerDrop() {
+  console.log('playerDrop: ピースをドロップします');
   if (gameState.isGameOver) return;
-  
-  gameState.piece.pos.x += dir;
-  if (collide(gameState.board, gameState.piece)) {
-    gameState.piece.pos.x -= dir;
-    if (collide(gameState.board, gameState.piece)) {
-      gameState.piece.pos.x -= dir;
-    }
-  }
-}
+  tetrisGame.dropPiece();
+  gameState.score = tetrisGame.score;
+  gameState.lines = tetrisGame.lines;
+  gameState.isGameOver = tetrisGame.isGameOver;
+  gameState.piece = tetrisGame.piece;
+  gameState.nextPiece = tetrisGame.nextPiece;
+  gameState.board = tetrisGame.board.grid;
+  updateScoreDisplay(gameState.score);
+  updateLinesDisplay(gameState.lines);
+  updateLevelDisplay(gameState.level);
+  draw(gameState.ctx, gameState.board, gameState.piece, gameState.nextPiece, tetrisGame.colors, gameState.BLOCK);
 
-function clearLines() {
-  let linesCleared = 0;
-  
-  outer: for (let y = gameState.ROWS - 1; y >= 0; y--) {
-    // 行がすべて埋まっているかチェック
-    for (let x = 0; x < gameState.COLS; x++) {
-      if (gameState.board[y][x] === 0) {
-        continue outer;
-      }
-    }
-    
-    // 行を削除して上にずらす
-    const row = gameState.board.splice(y, 1)[0].fill(0);
-    gameState.board.unshift(row);
-    y++;
-    linesCleared++;
-  }
-  
-  // スコアを更新
-  if (linesCleared > 0) {
-    gameState.score += calculateScore(linesCleared);
-    gameState.lines += linesCleared;
-    gameState.level = calculateLevel(gameState.lines);
-  }
-}
-
-function playerDrop() {
-  if (gameState.isGameOver) return;
-  
-  gameState.piece.pos.y++;
-  if (collide(gameState.board, gameState.piece)) {
-    gameState.piece.pos.y--;
-    merge(gameState.board, gameState.piece);
-    
-    // ラインが揃ったか確認
-    clearLines();
-    
-    // 新しいピースを生成
-    gameState.piece = createPiece();
-    
-    // ゲームオーバーチェック
-    if (collide(gameState.board, gameState.piece)) {
-      gameOver();
-    }
+  if (gameState.isGameOver) {
+    console.log('playerDrop: ゲームオーバー！');
+    alert('Game Over!');
+    cancelAnimationFrame(gameState.gameLoopId);
   }
   gameState.dropCounter = 0;
 }
 
-function update(time = 0) {
-  // 前回のフレームからの経過時間を計算
+// ピースを移動する関数
+export function playerMove(dir) {
+  console.log('playerMove: ピースを移動します', { dir });
+  if (gameState.isGameOver) return;
+  tetrisGame.movePiece(dir);
+  gameState.piece = tetrisGame.piece;
+  gameState.board = tetrisGame.board.grid;
+  draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, tetrisGame.colors, gameState.BLOCK);
+}
+
+// ピースを回転する関数
+export function playerRotate(dir) {
+  console.log('playerRotate: ピースを回転します', { dir });
+  if (gameState.isGameOver) return;
+  tetrisGame.rotatePiece(dir);
+  gameState.piece = tetrisGame.piece;
+  gameState.board = tetrisGame.board.grid;
+  draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, tetrisGame.colors, gameState.BLOCK);
+}
+
+// ゲームループ
+export function update(time = 0) {
+  if (gameState.paused) return;
   const deltaTime = time - gameState.lastTime;
   gameState.lastTime = time;
-  
-  // ドロップカウンターを更新
+
   gameState.dropCounter += deltaTime;
-  
-  // 一定時間経過でピースを下に移動
   if (gameState.dropCounter > gameState.dropInterval) {
-    if (gameState.debug) {
-      console.log('update: ピースを下に移動します');
-    }
     playerDrop();
-    gameState.dropCounter = 0; // カウンターをリセット
   }
-  
-  // 描画
-  try {
-    draw();
-  } catch (e) {
-    console.error('update: 描画中にエラーが発生しました', e);
-  }
-  
-  // ゲームオーバーでなければ次のフレームを要求
-  if (!gameState.isGameOver) {
-    gameState.gameLoopId = requestAnimationFrame(update);
-  } else {
-    // ゲームオーバー時の処理
-    console.log('update: ゲームオーバーを検出しました');
-    gameOver();
-  }
+
+  draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, tetrisGame.colors, gameState.BLOCK);
+  gameState.gameLoopId = requestAnimationFrame(update);
 }
 
 // キーハンドラ関数
-export function handleKeyDown(event) {
-  if (gameState.isGameOver) return;
+export function handleKeyDown(event, gameInstance) {
+  if (gameInstance.isGameOver) return;
 
-  // キーリピートを防ぐ
+  // キーリピートを無視
   if (event.repeat) return;
-  
-  // キーが押されている間は押しっぱなしにしない（下矢印は除く）
-  if (gameState.keys[event.key] && event.key !== 'ArrowDown') return;
-  gameState.keys[event.key] = true;
-  console.log('Key pressed:', event.key); // デバッグ用
 
-  // キーに応じた処理
+  gameInstance.keys[event.key] = true;
+
   switch (event.key) {
     case 'ArrowLeft':
-      playerMove(-1);
+      gameInstance.movePiece(-1);
       break;
     case 'ArrowRight':
-      playerMove(1);
+      gameInstance.movePiece(1);
       break;
     case 'ArrowDown':
-      playerDrop();
+      gameInstance.dropPiece();
       break;
     case 'ArrowUp':
-      playerRotate(1);
+      gameInstance.rotatePiece(1);
       break;
-    case ' ':
+    case ' ': // スペースキー
       // ハードドロップ
       console.log('handleKeyDown: ハードドロップを実行します');
-      if (!gameState.piece) {
+      if (!gameInstance.piece) {
         console.warn('handleKeyDown: アクティブなピースがありません');
         break;
       }
-      
+
       // ピースを一番下まで落とす
       while (true) {
-        const pieceY = gameState.piece.pos.y;
-        playerDrop();
+        const pieceY = gameInstance.piece.pos.y;
+        gameInstance.dropPiece();
         // 位置が変わらなくなったら終了
-        if (pieceY === gameState.piece.pos.y || gameState.isGameOver) {
-          console.log('handleKeyDown: ハードドロップ完了', { y: gameState.piece?.pos.y });
+        if (pieceY === gameInstance.piece.pos.y || gameInstance.isGameOver) {
+          console.log('handleKeyDown: ハードドロップ完了', { y: gameInstance.piece?.pos.y });
           break;
         }
       }
@@ -235,74 +267,99 @@ export function handleKeyDown(event) {
     case 'p':
     case 'P':
       // 一時停止
-      if (gameState.gameLoopId) {
-        cancelAnimationFrame(gameState.gameLoopId);
-        gameState.gameLoopId = null;
+      if (gameInstance.gameLoopId) {
+        cancelAnimationFrame(gameInstance.gameLoopId);
+        gameInstance.gameLoopId = null;
+        gameInstance.paused = true; // ポーズ状態を設定
       } else {
-        gameState.lastTime = 0;
-        gameState.gameLoopId = requestAnimationFrame(update);
+        gameInstance.paused = false; // ポーズ状態を解除
+        gameInstance.lastTime = 0;
+        gameInstance.gameLoopId = requestAnimationFrame(gameInstance.update);
       }
       break;
     case 'r':
     case 'R':
       // リセット
-      resetGame();
+      gameInstance.resetGame();
       break;
   }
 }
 
-export function handleKeyUp(event) {
-  gameState.keys[event.key] = false;
+export function handleKeyUp(event, gameInstance) {
+  gameInstance.keys[event.key] = false;
 }
 
 // イベントリスナーの設定
-function setupEventListeners(keyDownHandler, keyUpHandler) {
-console.log('setupEventListeners: イベントリスナーを設定します');
-  
-// 既存のイベントリスナーを削除
+export function setupEventListeners(keyDownHandler, keyUpHandler) {
+  console.log('setupEventListeners: イベントリスナーを設定します');
+
+  // 既存のイベントリスナーを削除
   document.removeEventListener('keydown', keyDownHandler);
   document.removeEventListener('keyup', keyUpHandler);
-  
-// 新しいイベントリスナーを追加
-document.addEventListener('keydown', keyDownHandler);
-document.addEventListener('keyup', keyUpHandler);
-  
-console.log('setupEventListeners: イベントリスナーの設定が完了しました');
+
+  // 新しいイベントリスナーを追加
+  document.addEventListener('keydown', keyDownHandler);
+  document.addEventListener('keyup', keyUpHandler);
+
+  console.log('setupEventListeners: イベントリスナーの設定が完了しました');
 }
 
 // ゲーム初期化
 export function init() {
   console.log('init: ゲームの初期化を開始します');
-  
+
   try {
     // ゲーム状態を初期化
     console.log('init: ゲームの初期化を開始します');
     const canvas = initGame();
-    
+
     if (!canvas) {
       throw new Error('キャンバスの初期化に失敗しました');
     }
-    
+
     // ゲームをリセット
     console.log('init: ゲームをリセットします');
     resetGame();
-    
+
     // ゲーム状態をログに出力
     gameState.logState();
-    
+
     // イベントリスナーを設定
     console.log('init: イベントリスナーを設定します');
-    setupEventListeners(handleKeyDown, handleKeyUp);
-    
+    setupEventListeners(
+      (event) => handleKeyDown(event, {
+        isGameOver: gameState.isGameOver,
+        keys: gameState.keys,
+        piece: gameState.piece,
+        gameLoopId: gameState.gameLoopId,
+        paused: gameState.paused,
+        lastTime: gameState.lastTime,
+        // tetrisGameのメソッドを直接参照
+        movePiece: tetrisGame.movePiece.bind(tetrisGame),
+        dropPiece: tetrisGame.dropPiece.bind(tetrisGame),
+        rotatePiece: tetrisGame.rotatePiece.bind(tetrisGame),
+        update: update,
+        resetGame: resetGame,
+      }),
+      (event) => handleKeyUp(event, {
+        keys: gameState.keys,
+      })
+    );
+
     console.log('init: ゲームの初期化が完了しました');
-    
+
     // 外部から参照できるように必要なものを返す
     return {
       canvas,
       gameState,
       handleKeyDown,
       handleKeyUp,
-      eventManager
+      setupEventListeners,
+      gameState,
+      eventManager,
+      initGame,
+      resetGame,
+      update,
     };
   } catch (error) {
     console.error('ゲームの初期化中にエラーが発生しました:', error);
@@ -319,7 +376,10 @@ const exports = {
   handleKeyUp,
   setupEventListeners,
   gameState,
-  eventManager
+  eventManager,
+  initGame,
+  resetGame,
+  update,
 };
 
 export default exports;
@@ -332,7 +392,7 @@ if (typeof window !== 'undefined') {
     gameState,
     handleKeyDown: exports.handleKeyDown,
     handleKeyUp,
-    eventManager
+    eventManager,
   };
 }
 
@@ -352,7 +412,7 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
       canvas.width = gameState.COLS * gameState.BLOCK;
       canvas.height = gameState.ROWS * gameState.BLOCK;
       // 再描画
-      draw();
+      draw(gameState.ctx, gameState.board, gameState.piece, gameState.nextPiece, tetrisGame.colors, gameState.BLOCK);
     }
   });
 }

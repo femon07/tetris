@@ -1,4 +1,4 @@
-export default function(api) {
+module.exports = function(api) {
   const isTest = api.env('test');
   
   return {
