@@ -1,15 +1,9 @@
+import { jest, beforeEach, afterEach } from '@jest/globals';
+
 // グローバルなモックや設定をここに追加
 // 例: テストで使用するグローバルなモック
 
-// fetch APIのモック
-if (typeof globalThis.fetch === 'undefined') {
-  import('node-fetch').then(({ default: fetch, Headers, Request, Response }) => {
-    globalThis.fetch = fetch;
-    globalThis.Headers = Headers;
-    globalThis.Request = Request;
-    globalThis.Response = Response;
-  });
-}
+
 
 // localStorageのモック
 const localStorageMock = (() => {

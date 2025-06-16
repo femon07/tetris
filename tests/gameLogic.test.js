@@ -1,4 +1,4 @@
-const { 
+import { 
   calculateScore, 
   calculateLevel, 
   gameState, 
@@ -6,7 +6,7 @@ const {
   collide, 
   rotate, 
   clearLines 
-} = require('../src/game');
+} from '../src/game.js';
 
 describe('Game Logic Tests', () => {
   // テスト用のボードを初期化するヘルパー関数

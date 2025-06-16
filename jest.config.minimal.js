@@ -2,9 +2,12 @@
  * 最小限のJest設定
  * テスト検出と実行の基本機能のみを有効化
  */
-module.exports = {
+export default {
   // テスト環境を指定
   testEnvironment: 'node',
+  
+  // セットアップファイル
+  setupFilesAfterEnv: ["<rootDir>/tests/setupTests.js"],
   
   // テストファイルのパターン
   testMatch: ['**/tests/**/*.test.js'],
