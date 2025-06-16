@@ -554,6 +554,10 @@ export function init() {
     // ゲーム状態をログに出力
     gameState.logState();
     
+    // イベントリスナーを設定
+    console.log('init: イベントリスナーを設定します');
+    setupEventListeners(handleKeyDown, handleKeyUp);
+    
     console.log('init: ゲームの初期化が完了しました');
     
     // 外部から参照できるように必要なものを返す
