@@ -1,0 +1,55 @@
+// Boardクラス
+// テトリスの盤面管理とロジックを担当
+
+export class Board {
+  constructor(cols = 10, rows = 20) {
+    this.cols = cols;
+    this.rows = rows;
+    this.clear();
+  }
+
+  clear() {
+    this.grid = Array.from({ length: this.rows }, () => Array(this.cols).fill(0));
+  }
+
+  isInside(x, y) {
+    return x >= 0 && x < this.cols && y >= 0 && y < this.rows;
+  }
+
+  isEmpty(x, y) {
+    return this.isInside(x, y) && this.grid[y][x] === 0;
+  }
+
+  setCell(x, y, value) {
+    if (this.isInside(x, y)) this.grid[y][x] = value;
+  }
+
+  getCell(x, y) {
+    return this.isInside(x, y) ? this.grid[y][x] : null;
+  }
+
+  merge(piece) {
+    for (let y = 0; y < piece.matrix.length; y++) {
+      for (let x = 0; x < piece.matrix[y].length; x++) {
+        if (piece.matrix[y][x]) {
+          this.setCell(piece.pos.x + x, piece.pos.y + y, piece.matrix[y][x]);
+        }
+      }
+    }
+  }
+
+  clearLines() {
+    let cleared = 0;
+    this.grid = this.grid.filter(row => {
+      if (row.every(cell => cell !== 0)) {
+        cleared++;
+        return false;
+      }
+      return true;
+    });
+    while (this.grid.length < this.rows) {
+      this.grid.unshift(Array(this.cols).fill(0));
+    }
+    return cleared;
+  }
+}
