@@ -70,14 +70,3 @@ export const GAME_CONSTANTS = {
     GAME_OVER: 'GAME_OVER'
   }
 };
-
-// エクスポート
-module.exports = {
-  COLS,
-  ROWS,
-  BLOCK,
-  SCORE_TABLE,
-  SHAPES,
-  COLORS,
-  GAME_STATES
-};

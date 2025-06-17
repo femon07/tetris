@@ -1,4 +1,5 @@
 import { Game } from './core/Game.js';
+import { GAME_CONSTANTS } from './constants/game.js';
 
 // ゲームの状態とロジックをカプセル化
 export const tetrisGame = new Game();
@@ -34,7 +35,7 @@ export function draw(ctx, board, piece, nextPiece, colors, blockSize) {
   }
 }
 
-function drawMatrix(ctx, matrix, offset, colors, blockSize) {
+export function drawMatrix(ctx, matrix, offset, colors, blockSize) {
   matrix.forEach((row, y) => {
     row.forEach((value, x) => {
       if (value !== 0) {
@@ -54,21 +55,21 @@ function drawMatrix(ctx, matrix, offset, colors, blockSize) {
 export function updateScoreDisplay(score) {
   const scoreElement = document.getElementById('score');
   if (scoreElement) {
-    scoreElement.innerText = score;
+    scoreElement.textContent = score;
   }
 }
 
 export function updateLinesDisplay(lines) {
   const linesElement = document.getElementById('lines');
   if (linesElement) {
-    linesElement.innerText = lines;
+    linesElement.textContent = lines;
   }
 }
 
 export function updateLevelDisplay(level) {
   const levelElement = document.getElementById('level');
   if (levelElement) {
-    levelElement.innerText = level;
+    levelElement.textContent = level;
   }
 }
 
@@ -77,7 +78,7 @@ export const gameState = {
   // ゲームの基本設定
   COLS: 10,
   ROWS: 20,
-  BLOCK: 30, // 各ブロックのサイズ（ピクセル）
+  BLOCK: GAME_CONSTANTS.BLOCK_SIZE, // 各ブロックのサイズ（ピクセル）
   // ゲームの状態変数
   board: [],
   piece: null,
@@ -131,8 +132,8 @@ export function initGame() {
   }
 
   // キャンバスのサイズを設定
-  canvas.width = gameState.COLS * gameState.BLOCK;
-  canvas.height = gameState.ROWS * gameState.BLOCK;
+  canvas.width = gameState.COLS * GAME_CONSTANTS.BLOCK_SIZE;
+  canvas.height = gameState.ROWS * GAME_CONSTANTS.BLOCK_SIZE;
 
   // グローバルなコンテキストとキャンバスをgameStateに保存
   gameState.ctx = ctx;
@@ -160,7 +161,12 @@ export function resetGame() {
   updateScoreDisplay(gameState.score);
   updateLinesDisplay(gameState.lines);
   updateLevelDisplay(gameState.level);
-  draw(gameState.ctx, gameState.board, gameState.piece, gameState.nextPiece, tetrisGame.colors, gameState.BLOCK);
+  const boardForDraw = {
+    grid: gameState.board,
+    cols: gameState.COLS,
+    rows: gameState.ROWS
+  };
+  draw(gameState.ctx, boardForDraw, gameState.piece, gameState.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
   console.log('resetGame: ゲームのリセットが完了しました');
 }
 
@@ -178,7 +184,7 @@ export function playerDrop() {
   updateScoreDisplay(gameState.score);
   updateLinesDisplay(gameState.lines);
   updateLevelDisplay(gameState.level);
-  draw(gameState.ctx, gameState.board, gameState.piece, gameState.nextPiece, tetrisGame.colors, gameState.BLOCK);
+  draw(gameState.ctx, gameState.board, gameState.piece, gameState.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
 
   if (gameState.isGameOver) {
     console.log('playerDrop: ゲームオーバー！');
@@ -195,7 +201,7 @@ export function playerMove(dir) {
   tetrisGame.movePiece(dir);
   gameState.piece = tetrisGame.piece;
   gameState.board = tetrisGame.board.grid;
-  draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, tetrisGame.colors, gameState.BLOCK);
+  draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
 }
 
 // ピースを回転する関数
@@ -205,7 +211,7 @@ export function playerRotate(dir) {
   tetrisGame.rotatePiece(dir);
   gameState.piece = tetrisGame.piece;
   gameState.board = tetrisGame.board.grid;
-  draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, tetrisGame.colors, gameState.BLOCK);
+  draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
 }
 
 // ゲームループ
@@ -219,7 +225,7 @@ export function update(time = 0) {
     playerDrop();
   }
 
-  draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, tetrisGame.colors, gameState.BLOCK);
+  draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
   gameState.gameLoopId = requestAnimationFrame(update);
 }
 
@@ -412,7 +418,7 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
       canvas.width = gameState.COLS * gameState.BLOCK;
       canvas.height = gameState.ROWS * gameState.BLOCK;
       // 再描画
-      draw(gameState.ctx, gameState.board, gameState.piece, gameState.nextPiece, tetrisGame.colors, gameState.BLOCK);
+      draw(gameState.ctx, gameState.board, gameState.piece, gameState.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
     }
   });
 }
