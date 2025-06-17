@@ -361,7 +361,6 @@ export function init() {
       handleKeyDown,
       handleKeyUp,
       setupEventListeners,
-      gameState,
       eventManager,
       initGame,
       resetGame,
