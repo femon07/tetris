@@ -1,6 +1,6 @@
 import { EventManager } from '../../src/event/EventManager';
 
-describe('EventManager', () => {
+describe('EventManager クラス', () => {
   let eventManager;
   let mockHandler;
 
@@ -17,20 +17,20 @@ describe('EventManager', () => {
     jest.restoreAllMocks();
   });
 
-  test('constructor should initialize eventHandlers map', () => {
+  test('コンストラクタはeventHandlersマップを初期化する', () => {
     expect(eventManager.eventHandlers).toBeInstanceOf(Map);
     expect(eventManager.eventHandlers.size).toBe(0);
   });
 
-  describe('addEventListener', () => {
-    test('should add an event listener', () => {
+  describe('addEventListener メソッド', () => {
+    test('イベントリスナーを追加できる', () => {
       eventManager.addEventListener('keydown', mockHandler);
       expect(eventManager.eventHandlers.get('keydown').has(mockHandler)).toBe(true);
       expect(document.addEventListener).toHaveBeenCalledWith('keydown', expect.any(Function));
       expect(document.addEventListener).toHaveBeenCalledTimes(1);
     });
 
-    test('should add multiple handlers for the same event type', () => {
+    test('同じ種類のイベントに複数のハンドラを登録できる', () => {
       const anotherHandler = jest.fn();
       eventManager.addEventListener('keydown', mockHandler);
       eventManager.addEventListener('keydown', anotherHandler);
@@ -39,7 +39,7 @@ describe('EventManager', () => {
       expect(document.addEventListener).toHaveBeenCalledTimes(1); // Should only be called once per eventType
     });
 
-    test('should return a function to remove the event listener', () => {
+    test('削除用関数を返す', () => {
       const remove = eventManager.addEventListener('keyup', mockHandler);
       expect(typeof remove).toBe('function');
       expect(eventManager.eventHandlers.get('keyup').has(mockHandler)).toBe(true);
@@ -50,8 +50,8 @@ describe('EventManager', () => {
     });
   });
 
-  describe('removeEventListener', () => {
-    test('should remove an event listener', () => {
+  describe('removeEventListener メソッド', () => {
+    test('イベントリスナーを削除できる', () => {
       eventManager.addEventListener('keydown', mockHandler);
       eventManager.removeEventListener('keydown', mockHandler);
       expect(eventManager.eventHandlers.has('keydown')).toBe(false);
@@ -59,7 +59,7 @@ describe('EventManager', () => {
       expect(document.removeEventListener).toHaveBeenCalledTimes(1);
     });
 
-    test('should not remove event listener if handler does not exist', () => {
+    test('存在しないハンドラは削除しない', () => {
       eventManager.addEventListener('keydown', mockHandler);
       const nonExistentHandler = jest.fn();
       eventManager.removeEventListener('keydown', nonExistentHandler);
@@ -67,14 +67,14 @@ describe('EventManager', () => {
       expect(document.removeEventListener).not.toHaveBeenCalled();
     });
 
-    test('should not remove event listener if event type does not exist', () => {
+    test('存在しないイベント種類では削除しない', () => {
       eventManager.removeEventListener('nonexistent', mockHandler);
       expect(document.removeEventListener).not.toHaveBeenCalled();
     });
   });
 
-  describe('removeAllEventListeners', () => {
-    test('should remove all event listeners', () => {
+  describe('removeAllEventListeners メソッド', () => {
+    test('すべてのイベントリスナーを削除できる', () => {
       const handler1 = jest.fn();
       const handler2 = jest.fn();
       eventManager.addEventListener('keydown', handler1);
@@ -85,31 +85,31 @@ describe('EventManager', () => {
     });
   });
 
-  describe('triggerEvent', () => {
-    test('should call registered handlers for the event type', () => {
+  describe('triggerEvent メソッド', () => {
+    test('登録済みハンドラが呼び出される', () => {
       eventManager.addEventListener('testEvent', mockHandler);
       eventManager.triggerEvent('testEvent');
       expect(mockHandler).toHaveBeenCalledTimes(1);
     });
 
-    test('should pass event properties to the handler', () => {
+    test('イベントオブジェクトが渡される', () => {
       eventManager.addEventListener('testEvent', mockHandler);
       const eventProps = { key: 'ArrowUp', code: 'ArrowUp' };
       eventManager.triggerEvent('testEvent', eventProps);
       expect(mockHandler).toHaveBeenCalledWith(expect.objectContaining(eventProps));
     });
 
-    test('should not call handlers for other event types', () => {
+    test('登録されていない種類のイベントでは呼び出されない', () => {
       eventManager.addEventListener('testEvent', mockHandler);
       eventManager.triggerEvent('anotherEvent');
       expect(mockHandler).not.toHaveBeenCalled();
     });
 
-    test('should not throw error if no handlers are registered for event type', () => {
+    test('ハンドラ未登録でもエラーにならない', () => {
       expect(() => eventManager.triggerEvent('nonExistentEvent')).not.toThrow();
     });
 
-    test('should handle errors in event handlers gracefully', () => {
+    test('ハンドラでの例外を握りつぶす', () => {
       const erroringHandler = jest.fn(() => { throw new new Error('Test Error'); });
       eventManager.addEventListener('errorEvent', erroringHandler);
       jest.spyOn(console, 'error').mockImplementation(() => {}); // Suppress console error during test
@@ -119,7 +119,7 @@ describe('EventManager', () => {
       console.error.mockRestore();
     });
 
-    test('should handle errors in handlers created by createEventHandler gracefully', () => {
+    test('createEventHandlerで生成したハンドラの例外を握りつぶす', () => {
       const erroringHandler = jest.fn(() => { throw new Error('Test Error from createEventHandler'); });
       eventManager.addEventListener('domEvent', erroringHandler);
       jest.spyOn(console, 'error').mockImplementation(() => {});

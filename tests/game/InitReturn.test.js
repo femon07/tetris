@@ -1,24 +1,16 @@
+import { setupGameDOM } from '../helpers/testUtils.js';
 import { init } from '../../src/game.js';
 
 describe('init関数の返り値', () => {
   beforeEach(() => {
-    document.body.innerHTML = [
-      '<canvas id="game"></canvas>',
-      '<canvas id="next-piece-canvas"></canvas>',
-      '<div id="score"></div>',
-      '<div id="lines"></div>',
-      '<div id="level"></div>'
-    ].join('');
-
-    const canvas = document.getElementById('game');
-    canvas.getContext = jest.fn(() => ({
-      fillRect: jest.fn(),
-      clearRect: jest.fn(),
-    }));
-
+    global.mockCtx = { fillRect: jest.fn(), clearRect: jest.fn() };
+    setupGameDOM();
+    const canvas = document.getElementById("game");
+    canvas.getContext = jest.fn(() => global.mockCtx);
     document.addEventListener = jest.fn();
     document.removeEventListener = jest.fn();
   });
+
 
   afterEach(() => {
     jest.restoreAllMocks();

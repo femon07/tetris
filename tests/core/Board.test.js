@@ -1,58 +1,58 @@
 import { Board } from '../../src/core/Board';
 import { Piece } from '../../src/core/Piece';
 
-describe('Board', () => {
+describe('Board クラス', () => {
   let board;
 
   beforeEach(() => {
     board = new Board(10, 20); // 10x20のボードを初期化
   });
 
-  test('should initialize with empty grid', () => {
+  test('空のグリッドで初期化される', () => {
     const emptyGrid = Array.from({ length: 20 }, () => Array(10).fill(0));
     expect(board.grid).toEqual(emptyGrid);
   });
 
-  test('should clear the grid', () => {
+  test('グリッドをクリアできる', () => {
     board.grid[0][0] = 1; // 適当な値を設定
     board.clear();
     const emptyGrid = Array.from({ length: 20 }, () => Array(10).fill(0));
     expect(board.grid).toEqual(emptyGrid);
   });
 
-  test('isInside should return true for valid coordinates', () => {
+  test('isInside は有効な座標で true を返す', () => {
     expect(board.isInside(0, 0)).toBe(true);
     expect(board.isInside(9, 19)).toBe(true);
     expect(board.isInside(5, 10)).toBe(true);
   });
 
-  test('isInside should return false for invalid coordinates', () => {
+  test('isInside は無効な座標で false を返す', () => {
     expect(board.isInside(-1, 0)).toBe(false);
     expect(board.isInside(0, -1)).toBe(false);
     expect(board.isInside(10, 0)).toBe(false);
     expect(board.isInside(0, 20)).toBe(false);
   });
 
-  test('isEmpty should return true for empty cells', () => {
+  test('isEmpty は空セルで true を返す', () => {
     expect(board.isEmpty(0, 0)).toBe(true);
     board.grid[0][0] = 1; // 埋める
     expect(board.isEmpty(0, 0)).toBe(false);
   });
 
-  test('setCell should set the value of a cell', () => {
+  test('setCell は指定セルに値を設定する', () => {
     board.setCell(0, 0, 1);
     expect(board.grid[0][0]).toBe(1);
     board.setCell(9, 19, 5);
     expect(board.grid[19][9]).toBe(5);
   });
 
-  test('getCell should return the value of a cell', () => {
+  test('getCell はセルの値を返す', () => {
     board.setCell(1, 1, 2);
     expect(board.getCell(1, 1)).toBe(2);
     expect(board.getCell(100, 100)).toBeNull(); // 範囲外
   });
 
-  test('merge should merge a piece onto the board', () => {
+  test('merge はピースをボードに統合する', () => {
     const matrix = [
       [1, 1],
       [1, 1]
@@ -65,7 +65,7 @@ describe('Board', () => {
     expect(board.grid[1][1]).toBe(1);
   });
 
-  test('clearLines should clear full lines and return count', () => {
+  test('clearLines は揃った行を消して数を返す', () => {
     // 1行目を全て埋める
     for (let i = 0; i < board.cols; i++) {
       board.setCell(i, 0, 1);

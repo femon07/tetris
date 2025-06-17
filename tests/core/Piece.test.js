@@ -1,6 +1,6 @@
 import { Piece } from '../../src/core/Piece';
 
-describe('Piece', () => {
+describe('Piece クラス', () => {
   let piece;
 
   beforeEach(() => {
@@ -12,7 +12,7 @@ describe('Piece', () => {
     piece = new Piece(matrix);
   });
 
-  test('should initialize with given matrix and position', () => {
+  test('行列と座標で初期化される', () => {
     const initialMatrix = [
       [1, 1],
       [1, 1]
@@ -22,14 +22,14 @@ describe('Piece', () => {
     expect(piece.pos).toEqual(initialPos);
   });
 
-  test('should move the piece by given delta x and y', () => {
+  test('指定量だけ移動する', () => {
     piece.move(1, 2);
     expect(piece.pos).toEqual({ x: 1, y: 2 });
     piece.move(-1, -1);
     expect(piece.pos).toEqual({ x: 0, y: 1 });
   });
 
-  test('should rotate the piece clockwise', () => {
+  test('時計回りに回転する', () => {
     const matrix = [
       [0, 1, 0],
       [1, 1, 1],
@@ -45,7 +45,7 @@ describe('Piece', () => {
     expect(piece.matrix).toEqual(expectedMatrix);
   });
 
-  test('should rotate the piece counter-clockwise', () => {
+  test('反時計回りに回転する', () => {
     const matrix = [
       [0, 1, 0],
       [1, 1, 1],
