@@ -6,7 +6,7 @@ import { Piece } from '../../src/core/Piece.js';
 jest.mock('../../src/core/Board.js');
 jest.mock('../../src/core/Piece.js');
 
-describe('Game', () => {
+describe('Game クラス', () => {
   let game;
   let mockBoardInstance;
   let mockPieceInstance;
@@ -71,7 +71,7 @@ describe('Game', () => {
     expect(game.piece).toBe(mockPieceInstance);
   });
 
-  describe('dropPiece', () => {
+  describe('dropPiece メソッド', () => {
     beforeEach(() => {
       game = new Game();
       game.reset();
@@ -116,7 +116,7 @@ describe('Game', () => {
     });
   });
 
-  describe('movePiece', () => {
+  describe('movePiece メソッド', () => {
     beforeEach(() => {
       game = new Game();
       game.reset();
@@ -136,7 +136,7 @@ describe('Game', () => {
     });
   });
 
-  describe('rotatePiece', () => {
+  describe('rotatePiece メソッド', () => {
     beforeEach(() => {
       game = new Game();
       game.reset();
@@ -158,7 +158,7 @@ describe('Game', () => {
     });
   });
 
-  describe('hasCollision', () => {
+  describe('hasCollision メソッド', () => {
     beforeEach(() => {
       game = new Game();
       game.reset();

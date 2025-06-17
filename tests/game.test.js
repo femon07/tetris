@@ -31,28 +31,19 @@ describe('Event Handlers', () => {
   });
 
   describe('handleKeyDown', () => {
-    test('ArrowLeftが押されたときにmovePiece(-1)を呼び出す', () => {
-      const event = { key: 'ArrowLeft', repeat: false };
+    test.each([
+      ['ArrowLeft', 'movePiece', [-1]],
+      ['ArrowRight', 'movePiece', [1]],
+      ['ArrowDown', 'dropPiece', []],
+      ['ArrowUp', 'rotatePiece', [1]],
+    ])('%sキーで適切なメソッドが呼び出される', (key, method, args) => {
+      const event = { key, repeat: false };
       handleKeyDown(event, mockGameInstance);
-      expect(mockGameInstance.movePiece).toHaveBeenCalledWith(-1);
-    });
-
-    test('ArrowRightが押されたときにmovePiece(1)を呼び出す', () => {
-      const event = { key: 'ArrowRight', repeat: false };
-      handleKeyDown(event, mockGameInstance);
-      expect(mockGameInstance.movePiece).toHaveBeenCalledWith(1);
-    });
-
-    test('ArrowDownが押されたときにdropPieceを呼び出す', () => {
-      const event = { key: 'ArrowDown', repeat: false };
-      handleKeyDown(event, mockGameInstance);
-      expect(mockGameInstance.dropPiece).toHaveBeenCalledTimes(1);
-    });
-
-    test('ArrowUpが押されたときにrotatePiece(1)を呼び出す', () => {
-      const event = { key: 'ArrowUp', repeat: false };
-      handleKeyDown(event, mockGameInstance);
-      expect(mockGameInstance.rotatePiece).toHaveBeenCalledWith(1);
+      if (args.length) {
+        expect(mockGameInstance[method]).toHaveBeenCalledWith(...args);
+      } else {
+        expect(mockGameInstance[method]).toHaveBeenCalled();
+      }
     });
 
     test('スペースキーが押されたときにハードドロップを実行する', () => {

@@ -1,3 +1,4 @@
+import { setupDOM } from '../helpers/testUtils.js';
 import { jest } from '@jest/globals';
 
 jest.mock('../../src/styles.css', () => ({}), { virtual: true });
@@ -10,7 +11,7 @@ beforeEach(() => {
     init: jest.fn(),
   }));
   ({ init } = require('../../src/game.js'));
-  document.body.innerHTML = '<canvas id="game"></canvas>';
+  setupDOM(['game']);
 });
 describe('index.js 自動起動テスト', () => {
   test('DOMContentLoaded で init が呼び出される', () => {

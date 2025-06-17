@@ -55,6 +55,7 @@ jest.mock('../../src/game', () => {
 
 // テスト用のモジュールをインポート
 const gameModule = require('../../src/game');
+const { setupGameDOM, setupDOM } = require("../helpers/testUtils");
 
 
 // モック化された関数やオブジェクトを取得
@@ -77,79 +78,12 @@ const {
 
 
 // Game Helper Functions用のsetupDOM（canvasやモック要素込み）
-const setupGameDOM = () => {
-  document.body.innerHTML = [
-    '<canvas id="game"></canvas>',
-    '<canvas id="next-piece-canvas"></canvas>',
-    '<div id="score"></div>',
-    '<div id="lines"></div>',
-    '<div id="level"></div>'
-  ].join('');
-  // ...（以下、元の内容を流用）
-  const gameCanvasElement = {
-    id: 'game',
-    width: 0,
-    height: 0,
-    getContext: jest.fn(() => global.mockCtx)
-  };
-  const mockNextPieceCanvas = {
-    id: 'next-piece-canvas',
-    width: 300,
-    height: 150,
-    getContext: jest.fn(() => global.mockCtx)
-  };
-  const mockScoreElement = {
-    id: 'score',
-    textContent: '0'
-  };
-  const mockLinesElement = {
-    id: 'lines',
-    textContent: '0'
-  };
-  const mockLevelElement = {
-    id: 'level',
-    textContent: '1'
-  };
-  document.getElementById = jest.fn((id) => {
-    switch (id) {
-      case 'game':
-        return gameCanvasElement;
-      case 'next-piece-canvas':
-        return mockNextPieceCanvas;
-      case 'score':
-        return mockScoreElement;
-      case 'lines':
-        return mockLinesElement;
-      case 'level':
-        return mockLevelElement;
-      default:
-        return null;
-    }
-  });
-  return {
-    gameCanvasElement,
-    mockNextPieceCanvas,
-    mockScoreElement,
-    mockLinesElement,
-    mockLevelElement,
-  };
-};
-
-// 表示系テスト専用のシンプルなsetupDOM
-const setupDisplayDOM = (ids) => {
-  if (!Array.isArray(ids)) throw new Error('setupDisplayDOMには配列を渡してください');
-  document.body.innerHTML = ids.map(id => `<div id="${id}"></div>`).join('');
-  return ids.reduce((acc, id) => {
-    acc[id] = document.getElementById(id);
-    return acc;
-  }, {});
-};
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe('Game Helper Functions', () => {
+describe('ゲームヘルパー関数', () => {
   let draw, drawMatrix, tetrisGame, gameState, mockCtx, mockCanvas, mockNextPieceCanvas, mockScoreElement, mockLinesElement, mockLevelElement;
   let mockState;
 
@@ -210,7 +144,7 @@ describe('Game Helper Functions', () => {
   });
 
   describe('drawMatrix', () => {
-    test('should call fillRect for non-zero matrix values', () => {
+    test('0以外の値のみ描画する', () => {
       // テスト用のパラメータを設定
       const testCtx = {
         fillStyle: '',
@@ -270,7 +204,7 @@ describe('Game Helper Functions', () => {
   });
 
   describe('draw', () => {
-    test('should clear background and draw board and piece', () => {
+    test('背景をクリアして描画する', () => {
       // テスト用のパラメータを設定
       const testCtx = {
         clearRect: jest.fn(),
@@ -314,15 +248,6 @@ describe('Game Helper Functions', () => {
     });
   });
 
-// DOMセットアップ用のヘルパー
-const setupDOM = (ids) => {
-  if (!Array.isArray(ids)) throw new Error('setupDOMには配列を渡してください');
-  document.body.innerHTML = ids.map(id => `<div id="${id}"></div>`).join('');
-  return ids.reduce((acc, id) => {
-    acc[id] = document.getElementById(id);
-    return acc;
-  }, {});
-};
 
   describe('表示系ヘルパー関数', () => {
     let elements;
@@ -335,7 +260,7 @@ const setupDOM = (ids) => {
       ['ライン数を更新するとDOMに値が反映される', 'lines', 4, '4'],
       ['レベルを更新するとDOMに値が反映される', 'level', 2, '2'],
     ])('%s', (_desc, id, value, expected) => {
-      elements = setupDisplayDOM([id]);
+      elements = setupDOM([id]);
       const element = elements[id];
       if (element) element.textContent = String(value);
       expect(element.textContent).toBe(expected);
