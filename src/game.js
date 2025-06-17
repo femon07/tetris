@@ -1,5 +1,6 @@
 import { Game } from './core/Game.js';
 import { GAME_CONSTANTS } from './constants/game.js';
+import { GameUI } from './ui/GameUI.js';
 
 // ゲームの状態とロジックをカプセル化
 export const tetrisGame = new Game();
@@ -225,90 +226,30 @@ export function update(time = 0) {
     playerDrop();
   }
 
-  draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
+  draw(
+    gameState.ctx,
+    gameState.board,
+    gameState.piece,
+    tetrisGame.nextPiece,
+    GAME_CONSTANTS.COLORS,
+    GAME_CONSTANTS.BLOCK_SIZE
+  );
   gameState.gameLoopId = requestAnimationFrame(update);
 }
 
-// キーハンドラ関数
-export function handleKeyDown(event, gameInstance) {
-  if (gameInstance.isGameOver) return;
+// GameUIインスタンス生成
+export const gameUI = new GameUI(gameState, {
+  movePiece: tetrisGame.movePiece.bind(tetrisGame),
+  dropPiece: tetrisGame.dropPiece.bind(tetrisGame),
+  rotatePiece: tetrisGame.rotatePiece.bind(tetrisGame),
+  update,
+  resetGame,
+});
 
-  // キーリピートを無視
-  if (event.repeat) return;
-
-  gameInstance.keys[event.key] = true;
-
-  switch (event.key) {
-    case 'ArrowLeft':
-      gameInstance.movePiece(-1);
-      break;
-    case 'ArrowRight':
-      gameInstance.movePiece(1);
-      break;
-    case 'ArrowDown':
-      gameInstance.dropPiece();
-      break;
-    case 'ArrowUp':
-      gameInstance.rotatePiece(1);
-      break;
-    case ' ': // スペースキー
-      // ハードドロップ
-      console.log('handleKeyDown: ハードドロップを実行します');
-      if (!gameInstance.piece) {
-        console.warn('handleKeyDown: アクティブなピースがありません');
-        break;
-      }
-
-      // ピースを一番下まで落とす
-      while (true) {
-        const pieceY = gameInstance.piece.pos.y;
-        gameInstance.dropPiece();
-        // 位置が変わらなくなったら終了
-        if (pieceY === gameInstance.piece.pos.y || gameInstance.isGameOver) {
-          console.log('handleKeyDown: ハードドロップ完了', { y: gameInstance.piece?.pos.y });
-          break;
-        }
-      }
-      break;
-    case 'p':
-    case 'P':
-      // 一時停止
-      if (gameInstance.gameLoopId) {
-        cancelAnimationFrame(gameInstance.gameLoopId);
-        gameInstance.gameLoopId = null;
-        gameInstance.paused = true; // ポーズ状態を設定
-      } else {
-        gameInstance.paused = false; // ポーズ状態を解除
-        gameInstance.lastTime = 0;
-        gameInstance.gameLoopId = requestAnimationFrame(gameInstance.update);
-      }
-      break;
-    case 'r':
-    case 'R':
-      // リセット
-      gameInstance.resetGame();
-      break;
-  }
-}
-
-export function handleKeyUp(event, gameInstance) {
-  gameInstance.keys[event.key] = false;
-}
-
-// イベントリスナーの設定
-export function setupEventListeners(keyDownHandler, keyUpHandler) {
-  console.log('setupEventListeners: イベントリスナーを設定します');
-
-  // 既存のイベントリスナーを削除
-  document.removeEventListener('keydown', keyDownHandler);
-  document.removeEventListener('keyup', keyUpHandler);
-
-  // 新しいイベントリスナーを追加
-  document.addEventListener('keydown', keyDownHandler);
-  document.addEventListener('keyup', keyUpHandler);
-
-  console.log('setupEventListeners: イベントリスナーの設定が完了しました');
-}
+// ラッパー関数として公開
+export const handleKeyDown = gameUI.onKeyDown;
+export const handleKeyUp = gameUI.onKeyUp;
+export const setupEventListeners = gameUI.setupEventListeners;
 
 // ゲーム初期化
 export function init() {
@@ -332,25 +273,7 @@ export function init() {
 
     // イベントリスナーを設定
     console.log('init: イベントリスナーを設定します');
-    setupEventListeners(
-      (event) => handleKeyDown(event, {
-        isGameOver: gameState.isGameOver,
-        keys: gameState.keys,
-        piece: gameState.piece,
-        gameLoopId: gameState.gameLoopId,
-        paused: gameState.paused,
-        lastTime: gameState.lastTime,
-        // tetrisGameのメソッドを直接参照
-        movePiece: tetrisGame.movePiece.bind(tetrisGame),
-        dropPiece: tetrisGame.dropPiece.bind(tetrisGame),
-        rotatePiece: tetrisGame.rotatePiece.bind(tetrisGame),
-        update: update,
-        resetGame: resetGame,
-      }),
-      (event) => handleKeyUp(event, {
-        keys: gameState.keys,
-      })
-    );
+    setupEventListeners();
 
     console.log('init: ゲームの初期化が完了しました');
 
