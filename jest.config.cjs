@@ -1,20 +1,14 @@
 module.exports = {
   testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.mjs'],
   transform: {
-    '^.+\\.(js|jsx)$': 'babel-jest',
+    '^.+\\.[cm]?[jt]sx?$': 'babel-jest',
   },
   moduleFileExtensions: ['js', 'jsx', 'json', 'node'],
-  testMatch: [
-    '<rootDir>/tests/**/*.test.js',
-  ],
+  testMatch: ['<rootDir>/tests/**/*.test.js'],
   transformIgnorePatterns: [
     'node_modules/(?!(chalk|debug)/)',
   ],
-  globals: {
-    'ts-jest': {
-      useESM: true,
-    },
-  },
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
