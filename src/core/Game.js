@@ -15,8 +15,46 @@ export class Game {
       [[6, 0, 0], [6, 6, 6]],
       [[0, 0, 7], [7, 7, 7]],
     ];
+    
+    // レベルに応じたドロップ間隔（ミリ秒）
+    this.levelSpeeds = [
+      1000, // レベル1: 1.0秒
+      900,  // レベル2: 0.9秒
+      800,  // レベル3: 0.8秒
+      700,  // レベル4: 0.7秒
+      600,  // レベル5: 0.6秒
+      500,  // レベル6: 0.5秒
+      400,  // レベル7: 0.4秒
+      300,  // レベル8: 0.3秒
+      200,  // レベル9: 0.2秒
+      100   // レベル10以降: 0.1秒
+    ];
+    
+    // レベルアップに必要なライン数
+    this.linesPerLevel = 10;
   }
 
+  /**
+   * 現在のレベルに応じたドロップ間隔を取得する
+   * @returns {number} ドロップ間隔（ミリ秒）
+   */
+  getDropInterval() {
+    const levelIndex = Math.min(this.level - 1, this.levelSpeeds.length - 1);
+    return this.levelSpeeds[levelIndex];
+  }
+  
+  /**
+   * レベルアップをチェックし、必要に応じてレベルを上げる
+   */
+  checkLevelUp() {
+    const newLevel = Math.floor(this.lines / this.linesPerLevel) + 1;
+    if (newLevel > this.level) {
+      this.level = newLevel;
+      return true;
+    }
+    return false;
+  }
+  
   reset() {
     this.board.clear();
     this.score = 0;
@@ -37,8 +75,11 @@ export class Game {
       this.piece.move(0, -1);
       this.board.merge(this.piece);
       const cleared = this.board.clearLines();
-      this.score += this.calculateScore(cleared);
-      this.lines += cleared;
+      if (cleared > 0) {
+        this.score += this.calculateScore(cleared);
+        this.lines += cleared;
+        this.checkLevelUp();
+      }
       this.spawnPiece();
       if (this.hasCollision()) {
         this.isGameOver = true;

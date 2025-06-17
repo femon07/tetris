@@ -65,30 +65,97 @@ describe('Board クラス', () => {
     expect(board.grid[1][1]).toBe(1);
   });
 
-  test('clearLines は揃った行を消して数を返す', () => {
-    // 1行目を全て埋める
-    for (let i = 0; i < board.cols; i++) {
-      board.setCell(i, 0, 1);
-    }
-    // 2行目も全て埋める
-    for (let i = 0; i < board.cols; i++) {
-      board.setCell(i, 1, 1);
-    }
-    // 3行目は半分だけ埋める
-    for (let i = 0; i < board.cols / 2; i++) {
-      board.setCell(i, 2, 1);
-    }
+  describe('clearLines メソッド', () => {
+    test('1行クリアする場合', () => {
+      // 1行目を全て埋める
+      for (let i = 0; i < board.cols; i++) {
+        board.setCell(i, 0, 1);
+      }
+      
+      const clearedLines = board.clearLines();
+      
+      expect(clearedLines).toBe(1);
+      // クリアされた行は削除され、上部に空の行が追加される
+      expect(board.grid[0].every(cell => cell === 0)).toBe(true);
+      // 他の行は変更されていないことを確認
+      for (let y = 1; y < board.rows; y++) {
+        expect(board.grid[y].every(cell => cell === 0)).toBe(true);
+      }
+    });
+    
+    test('複数行クリアする場合', () => {
+      // 1行目を全て埋める
+      for (let i = 0; i < board.cols; i++) {
+        board.setCell(i, 0, 1);
+      }
+      // 2行目も全て埋める
+      for (let i = 0; i < board.cols; i++) {
+        board.setCell(i, 1, 1);
+      }
+      // 3行目は半分だけ埋める
+      for (let i = 0; i < board.cols / 2; i++) {
+        board.setCell(i, 2, 1);
+      }
 
-    console.log('Before clearLines:', board.grid.map(row => row.join(' ')).join('\n'));
-    const clearedLines = board.clearLines();
-    console.log('After clearLines:', board.grid.map(row => row.join(' ')).join('\n'));
-    expect(clearedLines).toBe(2);
-    // クリアされた行が上部に移動していることを確認
-    // 新しい行が上部に追加されるため、元の行は下に移動する
-    // 元の3行目（インデックス2）は、クリア後にインデックス2に移動する
-    expect(board.grid[2][0]).toBe(1); // 半分埋めた行が正しい位置にあるか
-    // 新しい空の行が上部に2行追加されていることを確認
-    expect(board.grid[0][0]).toBe(0);
-    expect(board.grid[1][0]).toBe(0);
+      const clearedLines = board.clearLines();
+      
+      expect(clearedLines).toBe(2);
+      // クリアされた2行は削除され、上部に空の行が2行追加される
+      expect(board.grid[0].every(cell => cell === 0)).toBe(true);
+      expect(board.grid[1].every(cell => cell === 0)).toBe(true);
+      // 3行目（元々半分埋まっていた行）は1行目に移動
+      expect(board.grid[2].slice(0, board.cols / 2).every(cell => cell === 1)).toBe(true);
+      expect(board.grid[2].slice(board.cols / 2).every(cell => cell === 0)).toBe(true);
+    });
+    
+    test('連続しない行をクリアする場合', () => {
+      // 1行目を全て埋める
+      for (let i = 0; i < board.cols; i++) {
+        board.setCell(i, 0, 1);
+      }
+      // 2行目は空のまま
+      // 3行目を全て埋める
+      for (let i = 0; i < board.cols; i++) {
+        board.setCell(i, 2, 1);
+      }
+      // 4行目にマーカーを設定
+      board.setCell(0, 3, 2);
+      
+      const clearedLines = board.clearLines();
+      
+      expect(clearedLines).toBe(2);
+      // マーカーが2行上に移動する（2行削除されたため）
+      expect(board.grid[1][0]).toBe(2);
+      // 空の行が2行追加されている
+      expect(board.grid[0].every(cell => cell === 0)).toBe(true);
+      expect(board.grid[1][0]).toBe(2); // マーカー
+      // 2行目（元々空）は削除されずに残る
+      expect(board.grid[2].every(cell => cell === 0)).toBe(true);
+    });
+    
+    test('全ての行が埋まっている場合', () => {
+      // 全ての行を埋める
+      for (let y = 0; y < board.rows; y++) {
+        for (let x = 0; x < board.cols; x++) {
+          board.setCell(x, y, 1);
+        }
+      }
+      
+      const clearedLines = board.clearLines();
+      
+      expect(clearedLines).toBe(board.rows);
+      // 全ての行が空になる
+      expect(board.grid.every(row => row.every(cell => cell === 0))).toBe(true);
+    });
+    
+    test('クリアする行がない場合', () => {
+      // 何も埋めない
+      const clearedLines = board.clearLines();
+      
+      expect(clearedLines).toBe(0);
+      // ボードは初期状態のまま
+      const emptyGrid = Array.from({ length: board.rows }, () => Array(board.cols).fill(0));
+      expect(board.grid).toEqual(emptyGrid);
+    });
   });
 });

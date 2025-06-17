@@ -88,7 +88,7 @@ export const gameState = {
   lines: 0,
   level: 1,
   dropCounter: 0,
-  dropInterval: 1000, // ピースが自動で落ちる間隔（ミリ秒）
+  dropInterval: 0, // ピースが自動で落ちる間隔（ミリ秒）- 初期化時にGameインスタンスから設定
   lastTime: 0,
   gameLoopId: null,
   isGameOver: false,
@@ -221,6 +221,9 @@ export function update(time = 0) {
   const deltaTime = time - gameState.lastTime;
   gameState.lastTime = time;
 
+  // 現在のレベルに応じたドロップ間隔を更新
+  gameState.dropInterval = tetrisGame.getDropInterval();
+  
   gameState.dropCounter += deltaTime;
   if (gameState.dropCounter > gameState.dropInterval) {
     playerDrop();
