@@ -24,9 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   try {
     console.log('ゲームの初期化を開始します...');
-    const game = init();
-    console.log('テトリスゲームが初期化されました', game);
-    
     // キャンバスの状態を確認
     const canvas = document.getElementById('game');
     if (canvas) {

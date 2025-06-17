@@ -1,16 +1,16 @@
 {
   "name": "tetris",
   "version": "1.0.0",
+  "type": "module",
   "homepage": "https://femon07.github.io/tetris",
   "description": "A modern Tetris game with clean architecture and testable design",
-  "type": "module",
   "scripts": {
     "start": "webpack serve",
     "prebuild": "node scripts/prebuild.js",
     "build": "webpack",
-    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --verbose --no-cache tests/game-event-integration.test.mjs --config=jest.config.minimal.mjs",
-    "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch",
-    "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+    "test": "jest --verbose --no-cache",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "clean": "rimraf dist docs",
     "postbuild": "npm run copy-files",
     "copy-files": "cpx \"index.html\" dist && cpx \"dist/index.html\" docs && cpx \"dist/main.js\" docs && cpx \"dist/main.js\" ."
@@ -69,5 +69,8 @@
         }
       ]
     ]
+  },
+  "dependencies": {
+    "core-js": "^3.43.0"
   }
 }
