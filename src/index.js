@@ -32,6 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       console.error('キャンバス要素が見つかりません');
     }
+    // ゲームを開始
+    init();
   } catch (error) {
     console.error('ゲームの初期化中にエラーが発生しました:', error);
     alert('ゲームの初期化中にエラーが発生しました。コンソールを確認してください。');
