@@ -1,12 +1,13 @@
 import { setupGameDOM } from '../helpers/testUtils.js';
 import { init, draw } from '../../src/game.js';
 
-// draw関数をモック化
+// drawとupdate関数をモック化
 jest.mock('../../src/game.js', () => {
   const originalModule = jest.requireActual('../../src/game.js');
   return {
     ...originalModule,
     draw: jest.fn(), // draw関数をモック化
+    update: jest.fn(), // update関数もモック化
   };
 });
 
@@ -21,7 +22,8 @@ describe('init関数の返り値', () => {
       clearRect: jest.fn(),
       fillStyle: '',
       fillText: jest.fn(),
-      font: ''
+      font: '',
+      canvas: { width: 200, height: 400 }
     };
     
     // DOMのセットアップ
@@ -30,10 +32,19 @@ describe('init関数の返り値', () => {
     // キャンバスのモック設定
     const canvas = document.getElementById("game");
     canvas.getContext = jest.fn(() => global.mockCtx);
+    canvas.width = 200;
+    canvas.height = 400;
+    
+    // requestAnimationFrameのモック
+    global.requestAnimationFrame = jest.fn(() => 123);
+    global.cancelAnimationFrame = jest.fn();
     
     // イベントリスナーのモック設定
     document.addEventListener = jest.fn();
     document.removeEventListener = jest.fn();
+    
+    // console.logをモック（初期化ログを抑制）
+    jest.spyOn(console, 'log').mockImplementation(() => {});
     
     // drawのモックをリセット
     draw.mockClear();
@@ -52,6 +63,7 @@ describe('init関数の返り値', () => {
     const keys = Object.keys(result).sort();
     const expected = [
       'canvas',
+      'draw',
       'eventManager',
       'gameState',
       'handleKeyDown',

@@ -20,7 +20,8 @@ const setupDOM = () => {
   canvas.getContext = jest.fn().mockReturnValue({
     fillStyle: '',
     fillRect: jest.fn(),
-    clearRect: jest.fn()
+    clearRect: jest.fn(),
+    canvas: { width: 200, height: 400 }
   });
   document.body.appendChild(canvas);
   
@@ -122,8 +123,11 @@ describe('ゲーム初期化処理', () => {
       gameState.paused = true;
       
       // requestAnimationFrameをモック
-      global.requestAnimationFrame = jest.fn();
+      global.requestAnimationFrame = jest.fn(() => 456);
       global.cancelAnimationFrame = jest.fn();
+      
+      // console.logをモック（初期化ログを抑制）
+      jest.spyOn(console, 'log').mockImplementation(() => {});
       
       try {
         // 実行
