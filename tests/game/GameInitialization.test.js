@@ -42,22 +42,69 @@ import { GAME_CONSTANTS } from '../../src/constants/game';
 describe('game.jsの初期化処理', () => {
   let originalGetElementById;
   let originalGetContext;
+  let originalCreateElement;
   let addEventListenerSpy;
   let removeEventListenerSpy;
   let eventListeners = {};
+
+  // モック用のコンテキストを作成
+  const createMockContext = () => ({
+    fillRect: jest.fn(),
+    clearRect: jest.fn(),
+    fillStyle: '',
+    fillText: jest.fn(),
+    font: '',
+    translate: jest.fn(),
+    scale: jest.fn(),
+    save: jest.fn(),
+    restore: jest.fn()
+  });
 
   beforeEach(() => {
     // DOM操作をモック化するために元の関数を保存
     originalGetElementById = document.getElementById;
     originalGetContext = HTMLCanvasElement.prototype.getContext;
+    originalCreateElement = document.createElement;
+    
+    // モック用のコンテキストを作成
+    const mockCtx = createMockContext();
 
-    // window.addEventListener と window.removeEventListener をスパイ
+    // document.createElementのモックを設定
+    document.createElement = jest.fn((tagName) => {
+      if (tagName === 'canvas') {
+        return {
+          getContext: () => mockCtx,
+          width: 300,
+          height: 600,
+          style: {},
+          getBoundingClientRect: () => ({ width: 300, height: 600 })
+        };
+      }
+      return originalCreateElement(tagName);
+    });
+
+    // document.getElementByIdのモック
+    document.getElementById = jest.fn((id) => {
+      if (id === 'game') {
+        return {
+          getContext: () => mockCtx,
+          width: 300,
+          height: 600,
+          style: {},
+          getBoundingClientRect: () => ({ width: 300, height: 600 })
+        };
+      }
+      return null;
+    });
+
+    // windowイベントリスナーのモック
     addEventListenerSpy = jest.spyOn(window, 'addEventListener').mockImplementation((event, callback) => {
       if (!eventListeners[event]) {
         eventListeners[event] = [];
       }
       eventListeners[event].push(callback);
     });
+    
     removeEventListenerSpy = jest.spyOn(window, 'removeEventListener').mockImplementation((event, callback) => {
       if (eventListeners[event]) {
         const index = eventListeners[event].indexOf(callback);
@@ -67,41 +114,22 @@ describe('game.jsの初期化処理', () => {
       }
     });
 
-    // テスト用のイベントをトリガーする関数
+    // テスト用のイベントトリガー関数
     global.triggerDOMContentLoaded = () => {
-      eventListeners.DOMContentLoaded && eventListeners.DOMContentLoaded.forEach(callback => callback());
+      eventListeners.DOMContentLoaded?.forEach(callback => callback());
     };
+    
     global.triggerResize = () => {
-      eventListeners.resize && eventListeners.resize.forEach(callback => callback());
+      eventListeners.resize?.forEach(callback => callback());
     };
+    
     global.triggerKeyDown = (event) => {
-      eventListeners.keydown && eventListeners.keydown.forEach(callback => callback(event));
+      eventListeners.keydown?.forEach(callback => callback(event));
     };
+    
     global.triggerKeyUp = (event) => {
-      eventListeners.keyup && eventListeners.keyup.forEach(callback => callback(event));
+      eventListeners.keyup?.forEach(callback => callback(event));
     };
-
-    // キャンバスとコンテキストのモック設定
-    const mockCtx = {
-      fillRect: jest.fn(),
-      clearRect: jest.fn(),
-      fillStyle: '',
-      fillText: jest.fn(),
-      font: ''
-    };
-
-    // document.getElementByIdのモック
-    document.getElementById = jest.fn((id) => {
-      if (id === 'game') {
-        return {
-          getContext: () => mockCtx,
-          width: 0,
-          height: 0,
-          style: {}
-        };
-      }
-      return null;
-    });
 
     // 各テストケースでgameStateをリセット
     Object.assign(gameState, {
@@ -134,19 +162,20 @@ describe('game.jsの初期化処理', () => {
   });
 
   afterEach(() => {
-    // モックをリセット
+    // モックを元に戻す
     document.getElementById = originalGetElementById;
     HTMLCanvasElement.prototype.getContext = originalGetContext;
-    jest.restoreAllMocks();
-    // グローバルな状態をクリア
-    delete global.draw;
-    // スパイを復元
+    document.createElement = originalCreateElement;
+    
+    // スパイをクリア
     addEventListenerSpy.mockRestore();
     removeEventListenerSpy.mockRestore();
-    delete global.triggerDOMContentLoaded;
-    delete global.triggerResize;
-    delete global.triggerKeyDown;
-    delete global.triggerKeyUp;
+    
+    // イベントリスナーをクリア
+    eventListeners = {};
+    
+    // モックの状態をリセット
+    jest.clearAllMocks();
   });
 
   describe('initGame()', () => {
