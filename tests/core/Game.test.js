@@ -20,7 +20,8 @@ describe('Game クラス', () => {
       isInside: jest.fn().mockReturnValue(true),
       getCell: jest.fn().mockReturnValue(0),
       cols: 10, // Boardのcolsプロパティをモック
-      rows: 20  // Boardのrowsプロパティをモック
+      rows: 20, // Boardのrowsプロパティをモック
+      grid: Array.from({ length: 20 }, () => Array(10).fill(0)) // グリッドをモック
     };
     Board.mockImplementation(() => mockBoardInstance);
 
@@ -39,19 +40,23 @@ describe('Game クラス', () => {
 
   test('コンストラクタはBoardとPieceを初期化する', () => {
     const game = new Game();
-    // コンストラクタのテストではresetが呼ばれないため、pieceは初期化されない
+    // コンストラクタでresetが呼ばれるため、Boardが1回、Pieceが2回（piece + nextPiece）呼ばれる
     expect(Board).toHaveBeenCalledTimes(1);
     expect(game.board).toBe(mockBoardInstance);
-    expect(Piece).not.toHaveBeenCalled(); // resetが呼ばれないためPieceは生成されない
-    expect(game.piece).toBeUndefined();
-    expect(game.score).toBeUndefined();
-    expect(game.lines).toBeUndefined();
-    expect(game.level).toBeUndefined();
-    expect(game.isGameOver).toBeUndefined();
+    expect(Piece).toHaveBeenCalledTimes(2); // resetでpieceとnextPieceが生成される
+    expect(game.piece).toBe(mockPieceInstance);
+    expect(game.score).toBe(0);
+    expect(game.lines).toBe(0);
+    expect(game.level).toBe(1);
+    expect(game.isGameOver).toBe(false);
   });
 
   test('resetはゲーム状態を初期化し、新しいピースを生成する', () => {
     const game = new Game();
+    // モックをクリアしてからresetをテスト
+    mockBoardInstance.clear.mockClear();
+    Piece.mockClear();
+    
     game.reset();
 
     expect(mockBoardInstance.clear).toHaveBeenCalledTimes(1);
@@ -59,7 +64,7 @@ describe('Game クラス', () => {
     expect(game.lines).toBe(0);
     expect(game.level).toBe(1);
     expect(game.isGameOver).toBe(false);
-    expect(Piece).toHaveBeenCalledTimes(1); // resetで1回
+    expect(Piece).toHaveBeenCalledTimes(2); // piece + nextPiece
   });
 
   test('spawnPieceは新しいピースを生成する', () => {
