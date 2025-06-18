@@ -225,13 +225,27 @@ export class Game {
    * @returns {boolean} 衝突しているかどうか
    */
   hasCollision() {
-    if (!this.piece) return true;
+    if (!this.piece || !this.piece.matrix || !this.piece.pos) {
+      console.warn('Invalid piece data for collision detection');
+      return true;
+    }
     
     const { matrix, pos } = this.piece;
     
+    if (!Array.isArray(matrix) || typeof pos.x !== 'number' || typeof pos.y !== 'number') {
+      console.warn('Invalid matrix or position data');
+      return true;
+    }
+    
     for (let y = 0; y < matrix.length; y++) {
-      for (let x = 0; x < matrix[y].length; x++) {
-        if (matrix[y][x] !== 0) {
+      const row = matrix[y];
+      if (!Array.isArray(row)) {
+        console.warn(`Invalid row at index ${y}:`, row);
+        continue;
+      }
+      
+      for (let x = 0; x < row.length; x++) {
+        if (row[x] !== 0) {
           const boardX = pos.x + x;
           const boardY = pos.y + y;
           
@@ -240,7 +254,9 @@ export class Game {
             boardX < 0 ||
             boardX >= this.board.cols ||
             boardY >= this.board.rows ||
-            (boardY >= 0 && this.board.grid[boardY][boardX] !== 0)
+            (boardY >= 0 && 
+             this.board.grid[boardY] && 
+             this.board.grid[boardY][boardX] !== 0)
           ) {
             return true;
           }
@@ -322,8 +338,19 @@ export class Game {
    * @returns {number} 計算されたスコア
    */
   calculateScore(linesCleared) {
+    if (typeof linesCleared !== 'number' || linesCleared < 0) {
+      console.warn('Invalid linesCleared value:', linesCleared);
+      return 0;
+    }
+    
+    if (typeof this.level !== 'number' || this.level < 1) {
+      console.warn('Invalid level value:', this.level);
+      return 0;
+    }
+    
     const points = [0, 40, 100, 300, 1200]; // 0-4ライン消したときの基礎得点
-    return points[Math.min(linesCleared, 4)] * this.level;
+    const index = Math.min(Math.max(0, Math.floor(linesCleared)), points.length - 1);
+    return points[index] * this.level;
   }
 
   /**
@@ -340,67 +367,77 @@ export class Game {
    * @returns {boolean} 回転が成功したかどうか
    */
   rotatePiece(dir) {
-    if (!this.piece) return false;
-
-    const originalPos = { ...this.piece.pos };
-    const originalMatrix = this.piece.matrix.map(row => [...row]);
-    const originalRotationState = this.piece.rotationState;
-    // 現在の回転状態を検証
-    if (originalRotationState < 0 || originalRotationState > 3) {
-      console.error("無効な回転状態:", originalRotationState);
-      this.piece.matrix = originalMatrix;
-      this.piece.rotationState = originalRotationState;
+    if (!this.piece || !this.piece.matrix || !Array.isArray(this.piece.matrix)) {
+      console.warn('Invalid piece for rotation');
       return false;
     }
 
-    // ピースを回転（回転状態の更新はPiece.rotate内で行う）
-    this.piece.rotate(dir);
-    const newRotationState = this.piece.rotationState;
-
-    // SRS (Super Rotation System) の壁蹴りデータ
-    // I-テトロミノとそれ以外のテトロミノで異なる
-    const kickData = this.piece.type === 'I' ? SRS_KICKS_I : SRS_KICKS_JLTSZ;
-    
-    // 現在の回転状態に基づいてキックデータを取得
-    const kicks = kickData[originalRotationState % 4]; // 0-3の範囲に収める
-    
-    if (!kicks || !Array.isArray(kicks)) {
-      console.error("Invalid kicks data:", kicks, "for rotation state:", originalRotationState);
-      // キックデータが取得できない場合は元に戻す
-      this.piece.matrix = originalMatrix;
-      this.piece.rotationState = originalRotationState;
-      return false;
-    }
-    
-    // 反時計回りの場合はキックデータを反転
-    const testSet = dir === 1 
-      ? [...kicks] // 配列のコピーを作成
-      : kicks.map(kick => {
-          if (!Array.isArray(kick) || kick.length !== 2) {
-            console.error("Invalid kick data format:", kick);
-            return [0, 0];
-          }
-          return [-kick[0], -kick[1]];
-        });
-
-    for (const [offsetX, offsetY] of testSet) {
-      this.piece.pos.x += offsetX;
-      this.piece.pos.y += offsetY;
-
-      if (!this.hasCollision()) {
-        // 衝突がなければ回転成功
-        return true;
+    try {
+      const originalPos = { ...this.piece.pos };
+      const originalMatrix = this.piece.matrix.map(row => 
+        Array.isArray(row) ? [...row] : []
+      );
+      const originalRotationState = this.piece.rotationState;
+      
+      // 現在の回転状態を検証
+      if (typeof originalRotationState !== 'number' || originalRotationState < 0 || originalRotationState > 3) {
+        console.error("無効な回転状態:", originalRotationState);
+        this.piece.matrix = originalMatrix;
+        this.piece.rotationState = originalRotationState;
+        return false;
       }
-      // 衝突する場合は位置を戻して次のテストを試す
-      this.piece.pos.x -= offsetX;
-      this.piece.pos.y -= offsetY;
-    }
 
-    // 全てのテストで衝突する場合、元の状態に戻す
-    this.piece.matrix = originalMatrix;
-    this.piece.rotationState = originalRotationState;
-    this.piece.pos = { ...originalPos };
-    return false;
+      // ピースを回転（回転状態の更新はPiece.rotate内で行う）
+      this.piece.rotate(dir);
+
+      // SRS (Super Rotation System) の壁蹴りデータ
+      // I-テトロミノとそれ以外のテトロミノで異なる
+      const kickData = this.piece.type === 'I' ? SRS_KICKS_I : SRS_KICKS_JLTSZ;
+      
+      // 現在の回転状態に基づいてキックデータを取得
+      const kicks = kickData[originalRotationState % 4]; // 0-3の範囲に収める
+      
+      if (!kicks || !Array.isArray(kicks)) {
+        console.error("Invalid kicks data:", kicks, "for rotation state:", originalRotationState);
+        // キックデータが取得できない場合は元に戻す
+        this.piece.matrix = originalMatrix;
+        this.piece.rotationState = originalRotationState;
+        return false;
+      }
+      
+      // 反時計回りの場合はキックデータを反転
+      const testSet = dir === 1 
+        ? [...kicks] // 配列のコピーを作成
+        : kicks.map(kick => {
+            if (!Array.isArray(kick) || kick.length !== 2) {
+              console.error("Invalid kick data format:", kick);
+              return [0, 0];
+            }
+            return [-kick[0], -kick[1]];
+          });
+
+      for (const [offsetX, offsetY] of testSet) {
+        this.piece.pos.x += offsetX;
+        this.piece.pos.y += offsetY;
+
+        if (!this.hasCollision()) {
+          // 衝突がなければ回転成功
+          return true;
+        }
+        // 衝突する場合は位置を戻して次のテストを試す
+        this.piece.pos.x -= offsetX;
+        this.piece.pos.y -= offsetY;
+      }
+
+      // 全てのテストで衝突する場合、元の状態に戻す
+      this.piece.matrix = originalMatrix;
+      this.piece.rotationState = originalRotationState;
+      this.piece.pos = { ...originalPos };
+      return false;
+    } catch (error) {
+      console.error('Error during piece rotation:', error);
+      return false;
+    }
   }
 }
 

@@ -40,41 +40,94 @@ export const gameState = {
 
 // --- 描画関連 --- 
 function drawMatrix(ctx, matrix, offset, colors, blockSize) {
-  if (!matrix || !Array.isArray(matrix)) return;
+  if (!ctx || !matrix || !Array.isArray(matrix) || !offset || !colors || !blockSize) {
+    console.warn('drawMatrix: Invalid parameters', { 
+      hasCtx: !!ctx, 
+      hasMatrix: !!matrix, 
+      hasOffset: !!offset, 
+      hasColors: !!colors, 
+      hasBlockSize: !!blockSize 
+    });
+    return;
+  }
+  
+  // offset の有効性をチェック
+  if (typeof offset.x !== 'number' || typeof offset.y !== 'number') {
+    console.warn('drawMatrix: Invalid offset values', offset);
+    return;
+  }
+  
   matrix.forEach((row, y) => {
     if (!Array.isArray(row)) return;
     row.forEach((value, x) => {
       if (value !== 0) {
-        ctx.fillStyle = colors[value] || '#000';
-        ctx.fillRect((x + offset.x) * blockSize, (y + offset.y) * blockSize, blockSize, blockSize);
+        try {
+          // colors配列の境界チェック
+          ctx.fillStyle = (colors[value] && typeof colors[value] === 'string') ? colors[value] : '#000';
+          ctx.fillRect((x + offset.x) * blockSize, (y + offset.y) * blockSize, blockSize, blockSize);
+        } catch (error) {
+          console.error('Error drawing block at', x, y, ':', error);
+        }
       }
     });
   });
 }
 
 function draw() {
-  if (!gameState.ctx) return;
-  const { ctx, board, piece, nextPiece } = gameState;
-  const { COLORS, BLOCK_SIZE } = GAME_CONSTANTS;
+  try {
+    if (!gameState.ctx || !gameState.ctx.canvas) {
+      console.warn('Invalid canvas context in draw function');
+      return;
+    }
+    
+    const { ctx, piece, nextPiece } = gameState;
+    const { COLORS, BLOCK_SIZE } = GAME_CONSTANTS;
 
-  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  ctx.fillStyle = '#f0f0f0';
-  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    // キャンバスのクリアと背景描画
+    try {
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.fillStyle = '#f0f0f0';
+      ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    } catch (error) {
+      console.error('Error clearing/filling canvas:', error);
+      return;
+    }
 
-  drawMatrix(ctx, tetrisGame.board.grid, { x: 0, y: 0 }, COLORS, BLOCK_SIZE);
-  if (piece) {
-    drawMatrix(ctx, piece.matrix, piece.pos, COLORS, BLOCK_SIZE);
-  }
+    // メインボードの描画
+    if (tetrisGame && tetrisGame.board && tetrisGame.board.grid) {
+      drawMatrix(ctx, tetrisGame.board.grid, { x: 0, y: 0 }, COLORS, BLOCK_SIZE);
+    }
+    
+    // 現在のピースの描画
+    if (piece && piece.matrix && piece.pos) {
+      drawMatrix(ctx, piece.matrix, piece.pos, COLORS, BLOCK_SIZE);
+    }
 
-  // 次のピースの描画
-  const nextPieceCanvas = document.getElementById('next-piece-canvas');
-  if (nextPieceCanvas && nextPiece) {
-    const nextCtx = nextPieceCanvas.getContext('2d');
-    nextCtx.clearRect(0, 0, nextCtx.canvas.width, nextCtx.canvas.height);
-    const { matrix } = nextPiece;
-    const x = (nextCtx.canvas.width / BLOCK_SIZE - matrix[0].length) / 2;
-    const y = (nextCtx.canvas.height / BLOCK_SIZE - matrix.length) / 2;
-    drawMatrix(nextCtx, matrix, { x, y }, COLORS, BLOCK_SIZE);
+    // 次のピースの描画
+    const nextPieceCanvas = document.getElementById('next-piece-canvas');
+    if (nextPieceCanvas && nextPiece && nextPiece.matrix) {
+      try {
+        const nextCtx = nextPieceCanvas.getContext('2d');
+        if (!nextCtx) {
+          console.warn('Could not get 2D context for next piece canvas');
+          return;
+        }
+        
+        nextCtx.clearRect(0, 0, nextCtx.canvas.width, nextCtx.canvas.height);
+        const { matrix } = nextPiece;
+        
+        // マトリクスが有効かチェック
+        if (Array.isArray(matrix) && matrix.length > 0 && Array.isArray(matrix[0])) {
+          const x = (nextCtx.canvas.width / BLOCK_SIZE - matrix[0].length) / 2;
+          const y = (nextCtx.canvas.height / BLOCK_SIZE - matrix.length) / 2;
+          drawMatrix(nextCtx, matrix, { x, y }, COLORS, BLOCK_SIZE);
+        }
+      } catch (error) {
+        console.error('Error drawing next piece:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Unexpected error in draw function:', error);
   }
 }
 
@@ -86,23 +139,56 @@ function updateUI() {
 }
 
 export function updateScoreDisplay(score) {
-  const scoreElement = document.getElementById('score');
-  if (scoreElement) {
-    scoreElement.textContent = score.toString();
+  try {
+    if (typeof score !== 'number' || isNaN(score)) {
+      console.warn('Invalid score value:', score);
+      return;
+    }
+    
+    const scoreElement = document.getElementById('score');
+    if (scoreElement) {
+      scoreElement.textContent = score.toString();
+    } else {
+      console.warn('Score display element not found');
+    }
+  } catch (error) {
+    console.error('Error updating score display:', error);
   }
 }
 
 export function updateLinesDisplay(lines) {
-  const linesElement = document.getElementById('lines');
-  if (linesElement) {
-    linesElement.textContent = lines.toString();
+  try {
+    if (typeof lines !== 'number' || isNaN(lines)) {
+      console.warn('Invalid lines value:', lines);
+      return;
+    }
+    
+    const linesElement = document.getElementById('lines');
+    if (linesElement) {
+      linesElement.textContent = lines.toString();
+    } else {
+      console.warn('Lines display element not found');
+    }
+  } catch (error) {
+    console.error('Error updating lines display:', error);
   }
 }
 
 export function updateLevelDisplay(level) {
-  const levelElement = document.getElementById('level');
-  if (levelElement) {
-    levelElement.textContent = level.toString();
+  try {
+    if (typeof level !== 'number' || isNaN(level)) {
+      console.warn('Invalid level value:', level);
+      return;
+    }
+    
+    const levelElement = document.getElementById('level');
+    if (levelElement) {
+      levelElement.textContent = level.toString();
+    } else {
+      console.warn('Level display element not found');
+    }
+  } catch (error) {
+    console.error('Error updating level display:', error);
   }
 }
 
@@ -118,56 +204,130 @@ function updateGameState() {
 }
 
 export function playerDrop() {
-  if (gameState.isGameOver || gameState.paused) return false;
-  const dropped = tetrisGame.dropPiece();
-  updateGameState();
-  if (gameState.isGameOver) {
-    alert('Game Over!');
-    cancelAnimationFrame(gameState.gameLoopId);
+  try {
+    if (gameState.isGameOver || gameState.paused) return false;
+    
+    if (!tetrisGame || typeof tetrisGame.dropPiece !== 'function') {
+      console.error('Invalid tetrisGame object or missing dropPiece method');
+      return false;
+    }
+    
+    const dropped = tetrisGame.dropPiece();
+    updateGameState();
+    
+    if (gameState.isGameOver) {
+      alert('Game Over!');
+      if (gameState.gameLoopId) {
+        cancelAnimationFrame(gameState.gameLoopId);
+        gameState.gameLoopId = null;
+      }
+    }
+    return dropped;
+  } catch (error) {
+    console.error('Error in playerDrop:', error);
+    return false;
   }
-  return dropped;
 }
 
 export function playerMove(dir) {
-  if (gameState.isGameOver || gameState.paused) return;
-  if (!tetrisGame.piece) return;
-  tetrisGame.movePiece(dir);
-  updateGameState();
+  try {
+    if (gameState.isGameOver || gameState.paused) return;
+    
+    if (!tetrisGame || typeof tetrisGame.movePiece !== 'function') {
+      console.error('Invalid tetrisGame object or missing movePiece method');
+      return;
+    }
+    
+    if (!tetrisGame.piece) return;
+    
+    if (typeof dir !== 'number') {
+      console.warn('Invalid direction for playerMove:', dir);
+      return;
+    }
+    
+    tetrisGame.movePiece(dir);
+    updateGameState();
+  } catch (error) {
+    console.error('Error in playerMove:', error);
+  }
 }
 
 export function playerRotate(dir) {
-  if (gameState.isGameOver || gameState.paused) return;
-  if (!tetrisGame.piece) return;
-  tetrisGame.rotatePiece(dir);
-  updateGameState();
+  try {
+    if (gameState.isGameOver || gameState.paused) return;
+    
+    if (!tetrisGame || typeof tetrisGame.rotatePiece !== 'function') {
+      console.error('Invalid tetrisGame object or missing rotatePiece method');
+      return;
+    }
+    
+    if (!tetrisGame.piece) return;
+    
+    if (typeof dir !== 'number') {
+      console.warn('Invalid direction for playerRotate:', dir);
+      return;
+    }
+    
+    tetrisGame.rotatePiece(dir);
+    updateGameState();
+  } catch (error) {
+    console.error('Error in playerRotate:', error);
+  }
 }
 
 // --- ゲームループ ---
 export function update(time = 0) {
-  gameState.gameLoopId = requestAnimationFrame(update);
-  if (gameState.isGameOver) {
-    return;
-  }
+  try {
+    gameState.gameLoopId = requestAnimationFrame(update);
+    
+    if (gameState.isGameOver || gameState.paused) {
+      return;
+    }
 
-  // 初期化時はlastTimeを設定
-  if (!gameState.lastTime) {
+    // 初期化時はlastTimeを設定
+    if (!gameState.lastTime) {
+      gameState.lastTime = time;
+    }
+
+    const deltaTime = time - gameState.lastTime;
     gameState.lastTime = time;
-  }
-
-  const deltaTime = time - gameState.lastTime;
-  gameState.lastTime = time;
-  
-  // ドロップ処理
-  gameState.dropCounter += deltaTime;
-  if (gameState.dropCounter > tetrisGame.dropInterval) {
-    playerDrop();
-    gameState.dropCounter = 0;
-    // 即座に描画を更新
-    draw();
-    updateUI();
-  } else if (deltaTime < 100) { // 60FPSで描画する場合、16.67msごとに描画
-    // スムーズなアニメーションのため、ドロップ間も描画を更新
-    draw();
+    
+    // 異常なデルタタイムをスキップ（フレーム計算の安定性向上）
+    if (deltaTime > 1000) {
+      console.warn('Large delta time detected, skipping frame:', deltaTime);
+      return;
+    }
+    
+    // ドロップ処理
+    if (typeof gameState.dropCounter === 'number' && typeof tetrisGame.dropInterval === 'number') {
+      gameState.dropCounter += deltaTime;
+      if (gameState.dropCounter > tetrisGame.dropInterval) {
+        playerDrop();
+        gameState.dropCounter = 0;
+        // 即座に描画を更新
+        draw();
+        updateUI();
+      } else if (deltaTime < 100) { // 60FPSで描画する場合、16.67msごとに描画
+        // スムーズなアニメーションのため、ドロップ間も描画を更新
+        draw();
+      }
+    } else {
+      console.warn('Invalid dropCounter or dropInterval values');
+      // 無効な状態の場合は描画のみ実行
+      draw();
+    }
+  } catch (error) {
+    console.error('Game loop error:', error);
+    // ゲームを一時停止してエラーを報告
+    gameState.paused = true;
+    console.warn('Game paused due to error. Press R to reset the game.');
+    
+    // エラー発生時でも描画は試行する
+    try {
+      draw();
+    } catch (drawError) {
+      console.error('Draw error during error recovery:', drawError);
+    }
   }
 }
 

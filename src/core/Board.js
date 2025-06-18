@@ -25,7 +25,10 @@ export class Board {
   }
 
   getCell(x, y) {
-    return this.isInside(x, y) ? this.grid[y][x] : null;
+    if (!this.isInside(x, y) || !this.grid[y]) {
+      return null;
+    }
+    return this.grid[y][x];
   }
 
   merge(piece) {
@@ -39,15 +42,30 @@ export class Board {
   }
 
   clearLines() {
+    if (!this.grid || !Array.isArray(this.grid)) {
+      console.error('Invalid grid state');
+      return 0;
+    }
+    
     let cleared = 0;
     const newGrid = [];
     
     for (let y = 0; y < this.grid.length; y++) {
       const row = this.grid[y];
-      if (row.every(cell => cell !== 0)) {
-        cleared++;
-      } else {
-        newGrid.push(row);
+      if (!Array.isArray(row)) {
+        console.warn(`Invalid row at index ${y}:`, row);
+        continue;
+      }
+      
+      try {
+        if (row.every(cell => cell !== 0)) {
+          cleared++;
+        } else {
+          newGrid.push([...row]); // 行のコピーを作成して参照を避ける
+        }
+      } catch (error) {
+        console.error(`Error processing row ${y}:`, error);
+        newGrid.push([...row]);
       }
     }
     

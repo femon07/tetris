@@ -37,17 +37,22 @@ export default class GameUI {
         break;
       case ' ':
         // ハードドロップ: ピースが着地するまで連続で落とす
-        if (state.piece) {
+        if (state.piece && state.piece.pos && typeof state.piece.pos.y === 'number') {
           let dropCount = 0;
-          const maxDrops = state.ROWS; // 無限ループ防止
-          while (dropCount < maxDrops && !state.isGameOver) {
+          const maxDrops = Math.min(state.ROWS || 20, 100); // より安全な上限設定
+          while (dropCount < maxDrops && !state.isGameOver && state.piece) {
             const currentY = state.piece.pos.y;
-            const dropped = actions.dropPiece();
-            if (!dropped || state.piece.pos.y === currentY) {
-              // ピースが落ちなかった、または位置が変わらなかった場合は終了
+            try {
+              const dropped = actions.dropPiece();
+              if (!dropped || !state.piece || state.piece.pos.y === currentY) {
+                // ピースが落ちなかった、または位置が変わらなかった場合は終了
+                break;
+              }
+              dropCount++;
+            } catch (error) {
+              console.error('Error during hard drop:', error);
               break;
             }
-            dropCount++;
           }
         }
         break;
