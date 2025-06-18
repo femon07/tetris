@@ -142,6 +142,7 @@ describe('ゲームスコア表示処理', () => {
         lines: 5,
         level: 2,
         isGameOver: false,
+        paused: false,
         piece: { matrix: [[1, 1], [1, 1]], pos: { x: 5, y: 10 } },
         nextPiece: { matrix: [[1], [1]] },
       });

@@ -333,7 +333,10 @@ export class Game {
    */
   rotatePiece(dir) {
     if (!this.piece || this.isGameOver) {
-      console.warn('No piece to rotate or game is over');
+      // テスト環境では警告を出さない
+      if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+        console.warn('No piece to rotate or game is over');
+      }
       return false;
     }
 

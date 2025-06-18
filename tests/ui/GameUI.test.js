@@ -27,7 +27,11 @@ describe('GameUI メソッド', () => {
       stopSoftDrop: jest.fn(),
     };
     
-    ui = new GameUI(gameInstance, actions);
+    const gameStateManager = {
+      updateKeyState: jest.fn(),
+    };
+    
+    ui = new GameUI(gameInstance, actions, gameStateManager);
     addEventListenerSpy = jest.spyOn(document, 'addEventListener');
     removeEventListenerSpy = jest.spyOn(document, 'removeEventListener');
   });

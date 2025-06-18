@@ -1,7 +1,8 @@
 export default class GameUI {
-  constructor(state, actions) {
+  constructor(state, actions, gameStateManager) {
     this.state = state;
     this.actions = actions;
+    this.gameStateManager = gameStateManager;
     this.onKeyDown = this.onKeyDown.bind(this);
     this.onKeyUp = this.onKeyUp.bind(this);
   }
@@ -65,6 +66,10 @@ export default class GameUI {
 
   onKeyUp(event) {
     this.state.keys[event.key] = false;
+    // gameStateManagerがある場合のみupdateKeyStateを呼び出す
+    if (this.gameStateManager && this.gameStateManager.updateKeyState) {
+      this.gameStateManager.updateKeyState(event.key, false);
+    }
     // 下キーが離されたらドロップ間隔を元に戻す
     if (event.key === 'ArrowDown') {
       this.actions.stopSoftDrop();

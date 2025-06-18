@@ -30,7 +30,10 @@ export const gameState = new Proxy(gameStateManager.state, {
 // --- 描画関連 --- 
 function draw() {
   if (!renderer) {
-    console.warn('Renderer not initialized');
+    // テスト環境では警告を出さない
+    if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+      console.warn('Renderer not initialized');
+    }
     return;
   }
   
@@ -66,8 +69,6 @@ export function updateScoreDisplay(score) {
     const scoreElement = document.getElementById('score');
     if (scoreElement) {
       scoreElement.textContent = score.toString();
-    } else {
-      console.warn('Score display element not found');
     }
   } catch (error) {
     console.error('Error updating score display:', error);
@@ -84,8 +85,6 @@ export function updateLinesDisplay(lines) {
     const linesElement = document.getElementById('lines');
     if (linesElement) {
       linesElement.textContent = lines.toString();
-    } else {
-      console.warn('Lines display element not found');
     }
   } catch (error) {
     console.error('Error updating lines display:', error);
@@ -102,8 +101,6 @@ export function updateLevelDisplay(level) {
     const levelElement = document.getElementById('level');
     if (levelElement) {
       levelElement.textContent = level.toString();
-    } else {
-      console.warn('Level display element not found');
     }
   } catch (error) {
     console.error('Error updating level display:', error);
@@ -259,7 +256,7 @@ export const gameUI = new GameUI(gameState, {
   getDropInterval: () => tetrisGame.getDropInterval(),
   startSoftDrop: () => tetrisGame.startSoftDrop(),
   stopSoftDrop: () => tetrisGame.stopSoftDrop(),
-});
+}, gameStateManager);
 
 export function resetGame() {
   // 状態管理器をリセット
@@ -281,8 +278,8 @@ export function resetGame() {
   console.log('ゲームがリセットされました。');
 }
 
-function setupEventListeners() {
-  gameUI.setupEventListeners(gameUI.onKeyDown.bind(gameUI), gameUI.onKeyUp.bind(gameUI));
+function setupEventListeners(onKeyDown, onKeyUp) {
+  gameUI.setupEventListeners(onKeyDown, onKeyUp);
   window.addEventListener('resize', () => {
     const canvas = document.getElementById('game');
     if (canvas) {
@@ -330,7 +327,7 @@ export function init() {
     
     // イベントリスナーの設定
     console.log('イベントリスナーを設定します...');
-    gameUI.setupEventListeners();
+    setupEventListeners(gameUI.onKeyDown.bind(gameUI), gameUI.onKeyUp.bind(gameUI));
     
     // ゲームのリセット
     console.log('ゲームをリセットします...');
@@ -354,11 +351,9 @@ export function init() {
       canvas,
       eventManager,
       gameState: gameStateManager.getState(),
-      handleKeyDown,
-      handleKeyUp,
       initGame: init,
       resetGame,
-      setupEventListeners: gameUI.setupEventListeners.bind(gameUI),
+      setupEventListeners: setupEventListeners.bind(null, gameUI.onKeyDown.bind(gameUI), gameUI.onKeyUp.bind(gameUI)),
       update,
       draw
     };
@@ -392,13 +387,12 @@ export function initGame() {
 }
 
 // --- エクスポートとブラウザ実行 ---
-export const handleKeyDown = gameUI.onKeyDown.bind(gameUI);
-export const handleKeyUp = gameUI.onKeyUp.bind(gameUI);
+
 export { draw }; // draw関数をエクスポート
 
 export function setTetrisGame(newGame) {
   tetrisGame = newGame;
 }
 
-const exports = { init, initGame, playerMove, playerRotate, playerDrop, gameUI, gameState, gameStateManager, renderer, resetGame, update, handleKeyDown, handleKeyUp, setupEventListeners, draw, tetrisGame };
+const exports = { init, initGame, playerMove, playerRotate, playerDrop, gameUI, gameState, gameStateManager, renderer, resetGame, update, setupEventListeners, draw, tetrisGame };
 export default exports;

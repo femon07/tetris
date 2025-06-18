@@ -1,5 +1,5 @@
 import 'core-js/stable';  
-import { handleKeyDown, handleKeyUp, setupEventListeners, gameUI, gameStateManager } from '../src/game.js';
+import { setupEventListeners, gameUI, gameStateManager } from '../src/game.js';
 
 describe('Event Handlers', () => {
   let mockActions;
@@ -35,6 +35,7 @@ describe('Event Handlers', () => {
     if (gameStateManager) {
       gameStateManager.getState = jest.fn().mockReturnValue(mockState);
       gameStateManager.isRunning = jest.fn().mockReturnValue(true);
+      gameStateManager.updateKeyState = jest.fn(); // ここでモックを設定
     }
 
     // document.addEventListener と removeEventListener をモック
@@ -58,7 +59,7 @@ describe('Event Handlers', () => {
       ['ArrowUp', 'rotatePiece', [1]],
     ])('%sキーで適切なメソッドが呼び出される', (key, method, args) => {
       const event = { key, repeat: false };
-      handleKeyDown(event);
+      gameUI.onKeyDown(event);
       if (args.length) {
         expect(mockActions[method]).toHaveBeenCalledWith(...args);
       } else {
@@ -81,20 +82,20 @@ describe('Event Handlers', () => {
         }
       });
       const event = { key: ' ', repeat: false };
-      handleKeyDown(event);
+      gameUI.onKeyDown(event);
       expect(mockActions.dropPiece).toHaveBeenCalled();
       expect(callCount).toBeGreaterThan(1);
     });
 
     test('Rキーが押されたときにresetGameを呼び出す', () => {
       const event = { key: 'r', repeat: false };
-      handleKeyDown(event);
+      gameUI.onKeyDown(event);
       expect(mockActions.resetGame).toHaveBeenCalledTimes(1);
     });
 
     test('キーリピート時は処理をスキップする', () => {
       const event = { key: 'ArrowLeft', repeat: true };
-      handleKeyDown(event);
+      gameUI.onKeyDown(event);
       expect(mockActions.movePiece).not.toHaveBeenCalled();
     });
 
@@ -104,7 +105,7 @@ describe('Event Handlers', () => {
         gameStateManager.isRunning.mockReturnValue(false);
       }
       const event = { key: 'ArrowLeft', repeat: false };
-      handleKeyDown(event);
+      gameUI.onKeyDown(event);
       expect(mockActions.movePiece).not.toHaveBeenCalled();
     });
   });
@@ -113,15 +114,8 @@ describe('Event Handlers', () => {
     test('キーが離されたときにkeysの状態をfalseにする', () => {
       mockState.keys['ArrowLeft'] = true;
       const event = { key: 'ArrowLeft' };
-      handleKeyUp(event);
-      // gameStateManagerを使っている場合はモックを確認
-      if (gameStateManager && gameStateManager.updateKeyState) {
-        gameStateManager.updateKeyState = jest.fn();
-        handleKeyUp(event);
-        expect(gameStateManager.updateKeyState).toHaveBeenCalledWith('ArrowLeft', false);
-      } else {
-        expect(mockState.keys['ArrowLeft']).toBe(false);
-      }
+      gameUI.onKeyUp(event);
+      expect(gameStateManager.updateKeyState).toHaveBeenCalledWith('ArrowLeft', false);
     });
   });
 

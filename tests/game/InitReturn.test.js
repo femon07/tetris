@@ -66,8 +66,7 @@ describe('init関数の返り値', () => {
       'draw',
       'eventManager',
       'gameState',
-      'handleKeyDown',
-      'handleKeyUp',
+
       'initGame',
       'resetGame',
       'setupEventListeners',

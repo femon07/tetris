@@ -42,7 +42,10 @@ export class Renderer {
             this.ctx.fillStyle = (colors[value] && typeof colors[value] === 'string') ? colors[value] : '#000';
             this.ctx.fillRect((x + offset.x) * blockSize, (y + offset.y) * blockSize, blockSize, blockSize);
           } catch (error) {
-            console.error('Error drawing block at', x, y, ':', error);
+            // テスト環境では詳細エラーを出さない
+            if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+              console.error('Error drawing block at', x, y, ':', error);
+            }
           }
         }
       });
@@ -116,7 +119,10 @@ export class Renderer {
         tempRenderer.drawMatrix(matrix, { x, y });
       }
     } catch (error) {
-      console.error('Error drawing next piece:', error);
+      // テスト環境では詳細エラーを出さない  
+      if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+        console.error('Error drawing next piece:', error);
+      }
     }
   }
 

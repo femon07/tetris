@@ -20,17 +20,22 @@ document.head.appendChild(style);
 
 // ドキュメントの読み込み完了を待ってゲームを初期化
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOMContentLoaded イベントが発火しました');
+  // テスト環境では詳細ログを出さない
+  if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+    console.log('DOMContentLoaded イベントが発火しました');
+  }
   
   try {
-    console.log('ゲームの初期化を開始します...');
-    // キャンバスの状態を確認
-    const canvas = document.getElementById('game');
-    if (canvas) {
-      console.log('キャンバスのサイズ:', canvas.width, 'x', canvas.height);
-      console.log('キャンバスのスタイルサイズ:', canvas.style.width, 'x', canvas.style.height);
-    } else {
-      console.error('キャンバス要素が見つかりません');
+    if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+      console.log('ゲームの初期化を開始します...');
+      // キャンバスの状態を確認
+      const canvas = document.getElementById('game');
+      if (canvas) {
+        console.log('キャンバスのサイズ:', canvas.width, 'x', canvas.height);
+        console.log('キャンバスのスタイルサイズ:', canvas.style.width, 'x', canvas.style.height);
+      } else {
+        console.error('キャンバス要素が見つかりません');
+      }
     }
     // ゲームを開始
     init();

@@ -1,6 +1,3 @@
-// モジュールをモック化
-// display系ヘルパーは本物を使う
-const realGame = jest.requireActual('../../src/game');
 jest.mock('../../src/game', () => {
   // テスト用のモック状態
   const mockState = {
@@ -9,24 +6,54 @@ jest.mock('../../src/game', () => {
     lines: 0,
     level: 1,
     isGameOver: false,
-    ROWS: 20,
+    piece: null,
+    nextPiece: null,
+    dropCounter: 0,
+    lastTime: 0,
+    paused: false,
+    keys: {},
+    dropInterval: 1000,
     COLS: 10,
-    initBoard: jest.fn().mockImplementation(function() {
-      this.board = Array(this.ROWS).fill().map(() => Array(this.COLS).fill(0));
-    }),
-    logState: jest.fn(),
-    canvas: null,
-    piece: { matrix: [[1,1],[1,1]], pos: {x: 0, y: 0} },
-    nextPiece: { matrix: [[1,1],[1,1]], pos: {x: 0, y: 0} },
-    get ctx() {
-      return global.mockCtx;
-    },
-    set ctx(value) {
-      // 空のセッター
-    }
+    ROWS: 20,
+    BLOCK_SIZE: 20,
   };
 
-  // モジュールのエクスポートを返す
+  // GameStateManagerのモック
+  const mockGameStateManager = {
+    state: mockState,
+    getState: () => mockState,
+    set: (key, value) => { mockState[key] = value; },
+    reset: () => {
+      mockState.board = Array(20).fill().map(() => Array(10).fill(0));
+      mockState.score = 0;
+      mockState.lines = 0;
+      mockState.level = 1;
+      mockState.isGameOver = false;
+      mockState.piece = null;
+      mockState.nextPiece = null;
+      mockState.dropCounter = 0;
+      mockState.lastTime = 0;
+      mockState.paused = false;
+      mockState.keys = {};
+      mockState.dropInterval = 1000;
+    },
+    isRunning: () => !mockState.isGameOver && !mockState.paused,
+    setPaused: (paused) => { mockState.paused = paused; },
+    updateKeyState: (key, value) => { mockState.keys[key] = value; },
+    logState: jest.fn(() => JSON.stringify(mockState, null, 2)),
+    syncWithGame: jest.fn(),
+    setGameLoopId: jest.fn(),
+    stopGameLoop: jest.fn(),
+    initBoard: jest.fn(),
+  };
+
+  // GameUIのモック
+  const mockGameUI = {
+    setupEventListeners: jest.fn(),
+    onKeyDown: jest.fn(),
+    onKeyUp: jest.fn(),
+  };
+
   return {
     draw: jest.fn(),
     drawMatrix: jest.fn(),
@@ -41,41 +68,39 @@ jest.mock('../../src/game', () => {
       mockState.lines = 0;
       mockState.level = 1;
       mockState.isGameOver = false;
-      mockState.initBoard();
+      mockState.piece = null;
+      mockState.nextPiece = null;
+      mockState.dropCounter = 0;
+      mockState.lastTime = 0;
+      mockState.paused = false;
+      mockState.keys = {};
+      mockState.dropInterval = 1000;
+      mockGameStateManager.reset();
     }),
-    gameState: mockState,
-    get ctx() {
-      return global.mockCtx;
-    },
-    set ctx(value) {
-      // 空のセッター
-    }
+    update: jest.fn(),
+    playerMove: jest.fn(),
+    playerRotate: jest.fn(),
+    playerDrop: jest.fn(),
+    gameState: mockGameStateManager.state,
+    gameStateManager: mockGameStateManager,
+    gameUI: mockGameUI,
+    init: jest.fn().mockImplementation(() => {
+      mockGameStateManager.reset();
+      return { canvas: global.mockCanvas, eventManager: {}, gameState: mockGameStateManager.state, initGame: jest.fn(), resetGame: jest.fn(), setupEventListeners: jest.fn(), update: jest.fn(), draw: jest.fn() };
+    }),
+    setupEventListeners: jest.fn().mockImplementation((keyDownHandler, keyUpHandler) => {
+      mockGameUI.setupEventListeners(keyDownHandler, keyUpHandler);
+    }),
   };
 });
 
 // テスト用のモジュールをインポート
-const gameModule = require('../../src/game');
+import { draw, drawMatrix, tetrisGame, initGame, resetGame, gameState, updateScoreDisplay, updateLinesDisplay, updateLevelDisplay } from '../../src/game';
 const { setupGameDOM, setupDOM } = require("../helpers/testUtils");
-
-
-// モック化された関数やオブジェクトを取得
-const {
-  draw,
-  drawMatrix,
-  tetrisGame,
-  /* updateScoreDisplay, */
-  /* updateLinesDisplay, */
-  /* updateLevelDisplay, */
-  initGame,
-  resetGame,
-  gameState
-} = gameModule;
 
 // テスト用の変数を定義
 
-
 // テスト用のDOM要素を設定するヘルパー関数
-
 
 // Game Helper Functions用のsetupDOM（canvasやモック要素込み）
 
