@@ -185,6 +185,8 @@ export class Game {
     this.score = 0;
     this.isGameOver = false;
     this.paused = false;
+    // 自動落下間隔をリセット
+    this.dropInterval = this.getDropInterval();
   }
   
   /**
