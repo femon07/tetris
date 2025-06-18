@@ -2,357 +2,190 @@ import { Game } from './core/Game.js';
 import { GAME_CONSTANTS } from './constants/game.js';
 import GameUI from "./ui/GameUI.js";
 
-// ゲームの状態とロジックをカプセル化
+// --- グローバル変数と状態管理 ---
 export let tetrisGame = new Game();
-export function setTetrisGame(instance) {
-  tetrisGame = instance;
-}
-
-// レンダリング関連のヘルパー関数
-export function draw(ctx, board, piece, nextPiece, colors, blockSize) {
-  // 背景をクリア
-  ctx.fillStyle = '#f0f0f0';
-  ctx.fillRect(0, 0, board.cols * blockSize, board.rows * blockSize);
-
-  // ボードを描画
-  drawMatrix(ctx, board.grid, { x: 0, y: 0 }, colors, blockSize);
-
-  // 現在のピースを描画
-  if (piece) {
-    drawMatrix(ctx, piece.matrix, piece.pos, colors, blockSize);
-  }
-
-  // 次のピースを描画
-  if (nextPiece) {
-    const nextPieceCanvas = document.getElementById('next-piece-canvas');
-    if (nextPieceCanvas) {
-      const nextPieceCtx = nextPieceCanvas.getContext('2d');
-      if (nextPieceCtx) {
-        nextPieceCtx.clearRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
-        const pieceMatrix = nextPiece.matrix;
-        const startX = (nextPieceCanvas.width / 2) - (pieceMatrix[0].length * blockSize / 2);
-        const startY = (nextPieceCanvas.height / 2) - (pieceMatrix.length * blockSize / 2);
-
-        drawMatrix(nextPieceCtx, pieceMatrix, { x: startX / blockSize, y: startY / blockSize }, colors, blockSize);
-      }
-    }
-  }
-}
-
-export function drawMatrix(ctx, matrix, offset, colors, blockSize) {
-  matrix.forEach((row, y) => {
-    row.forEach((value, x) => {
-      if (value !== 0) {
-        ctx.fillStyle = colors[value];
-        ctx.fillRect(
-          (x + offset.x) * blockSize,
-          (y + offset.y) * blockSize,
-          blockSize,
-          blockSize
-        );
-      }
-    });
-  });
-}
-
-// UI更新関連のヘルパー関数
-export function updateScoreDisplay(score) {
-  const scoreElement = document.getElementById('score');
-  if (scoreElement) {
-    scoreElement.textContent = score;
-  }
-}
-
-export function updateLinesDisplay(lines) {
-  const linesElement = document.getElementById('lines');
-  if (linesElement) {
-    linesElement.textContent = lines;
-  }
-}
-
-export function updateLevelDisplay(level) {
-  const levelElement = document.getElementById('level');
-  if (levelElement) {
-    levelElement.textContent = level;
-  }
-}
-
-// ゲームの状態を管理するオブジェクト
+export const eventManager = new EventTarget();
 export const gameState = {
-  // ゲームの基本設定
-  COLS: 10,
-  ROWS: 20,
-  BLOCK: GAME_CONSTANTS.BLOCK_SIZE, // 各ブロックのサイズ（ピクセル）
-  // ゲームの状態変数
-  board: [],
+  ctx: null,
+  board: { grid: [], rows: GAME_CONSTANTS.ROWS, cols: GAME_CONSTANTS.COLS },
   piece: null,
   nextPiece: null,
   score: 0,
   lines: 0,
   level: 1,
   dropCounter: 0,
-  dropInterval: 0, // ピースが自動で落ちる間隔（ミリ秒）- 初期化時にGameインスタンスから設定
+  dropInterval: 1000,
   lastTime: 0,
   gameLoopId: null,
   isGameOver: false,
-  // キー入力の状態管理
-  keys: {},
-  // ゲームの一時停止状態
   paused: false,
+  keys: {},
 
-  // ゲームの状態を初期化する関数
-  initBoard() {
-    this.board = Array(this.ROWS).fill(0).map(() => Array(this.COLS).fill(0));
-  },
-
-  // ログ出力関数
   logState() {
-    console.log('Current Game State:', {
-      score: this.score,
-      lines: this.lines,
-      level: this.level,
-      isGameOver: this.isGameOver,
-      piece: this.piece ? { matrix: this.piece.matrix, pos: this.piece.pos } : null,
-      nextPiece: this.nextPiece ? { matrix: this.nextPiece.matrix } : null,
-    });
+    console.log('--- 現在のゲーム状態 ---');
+    console.log(`スコア: ${this.score}, ライン: ${this.lines}, レベル: ${this.level}`);
+    console.log(`ゲームオーバー: ${this.isGameOver}, 一時停止: ${this.paused}`);
+    console.log('--------------------');
   }
 };
 
-// イベントマネージャーの作成
-export const eventManager = new EventTarget();
-
-// ゲームを初期化する関数
-export function initGame() {
-  console.log('initGame: ゲームの初期化を開始します');
-  const canvas = document.getElementById('game');
-  if (!canvas) {
-    console.error('Canvas要素が見つかりません');
-    return null;
-  }
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    console.error('2Dコンテキストの取得に失敗しました');
-    return null;
-  }
-
-  // キャンバスのサイズを設定
-  canvas.width = gameState.COLS * GAME_CONSTANTS.BLOCK_SIZE;
-  canvas.height = gameState.ROWS * GAME_CONSTANTS.BLOCK_SIZE;
-
-  // グローバルなコンテキストとキャンバスをgameStateに保存
-  gameState.ctx = ctx;
-  gameState.canvas = canvas;
-
-  console.log('initGame: キャンバスとコンテキストの初期化が完了しました');
-  return canvas;
+// --- 描画関連 --- 
+function drawMatrix(ctx, matrix, offset, colors, blockSize) {
+  if (!matrix || !Array.isArray(matrix)) return;
+  matrix.forEach((row, y) => {
+    if (!Array.isArray(row)) return;
+    row.forEach((value, x) => {
+      if (value !== 0) {
+        ctx.fillStyle = colors[value] || '#000';
+        ctx.fillRect((x + offset.x) * blockSize, (y + offset.y) * blockSize, blockSize, blockSize);
+      }
+    });
+  });
 }
 
-// ゲームをリセットする関数
-export function resetGame() {
-  console.log('resetGame: ゲームをリセットします');
-  tetrisGame.reset();
+function draw() {
+  if (!gameState.ctx) return;
+  const { ctx, board, piece, nextPiece } = gameState;
+  const { COLORS, BLOCK_SIZE } = GAME_CONSTANTS;
+
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.fillStyle = '#f0f0f0';
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+  drawMatrix(ctx, board.grid, { x: 0, y: 0 }, COLORS, BLOCK_SIZE);
+  if (piece) {
+    drawMatrix(ctx, piece.matrix, piece.pos, COLORS, BLOCK_SIZE);
+  }
+
+  // 次のピースの描画
+  const nextPieceCanvas = document.getElementById('next-piece-canvas');
+  if (nextPieceCanvas && nextPiece) {
+    const nextCtx = nextPieceCanvas.getContext('2d');
+    nextCtx.clearRect(0, 0, nextCtx.canvas.width, nextCtx.canvas.height);
+    const { matrix } = nextPiece;
+    const x = (nextCtx.canvas.width / BLOCK_SIZE - matrix[0].length) / 2;
+    const y = (nextCtx.canvas.height / BLOCK_SIZE - matrix.length) / 2;
+    drawMatrix(nextCtx, matrix, { x, y }, COLORS, BLOCK_SIZE);
+  }
+}
+
+// --- UI更新 --- 
+function updateUI() {
+  document.getElementById('score').textContent = gameState.score;
+  document.getElementById('lines').textContent = gameState.lines;
+  document.getElementById('level').textContent = gameState.level;
+}
+
+// --- ゲームロジック --- 
+function updateGameState() {
   gameState.score = tetrisGame.score;
   gameState.lines = tetrisGame.lines;
   gameState.level = tetrisGame.level;
   gameState.isGameOver = tetrisGame.isGameOver;
   gameState.piece = tetrisGame.piece;
   gameState.nextPiece = tetrisGame.nextPiece;
-  gameState.board = tetrisGame.board.grid;
-  gameState.dropCounter = 0;
-  gameState.lastTime = 0;
-  gameState.gameLoopId = null;
-  gameState.paused = false;
-  updateScoreDisplay(gameState.score);
-  updateLinesDisplay(gameState.lines);
-  updateLevelDisplay(gameState.level);
-  const boardForDraw = {
-    grid: gameState.board,
-    cols: gameState.COLS,
-    rows: gameState.ROWS
-  };
-  global.draw(gameState.ctx, boardForDraw, gameState.piece, gameState.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
-  console.log('resetGame: ゲームのリセットが完了しました');
+  gameState.board.grid = tetrisGame.board.grid;
 }
 
-// ピースをドロップする関数
 export function playerDrop() {
   if (gameState.isGameOver || gameState.paused) return;
-  console.log('playerDrop: ピースをドロップします');
   tetrisGame.dropPiece();
-  gameState.score = tetrisGame.score;
-  gameState.lines = tetrisGame.lines;
-  gameState.isGameOver = tetrisGame.isGameOver;
-  gameState.piece = tetrisGame.piece;
-  gameState.nextPiece = tetrisGame.nextPiece;
-  gameState.board = tetrisGame.board.grid;
-  updateScoreDisplay(gameState.score);
-  updateLinesDisplay(gameState.lines);
-  updateLevelDisplay(gameState.level);
-  global.draw(gameState.ctx, gameState.board, gameState.piece, gameState.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
-
+  updateGameState();
   if (gameState.isGameOver) {
-    console.log('playerDrop: ゲームオーバー！');
     alert('Game Over!');
     cancelAnimationFrame(gameState.gameLoopId);
   }
-  gameState.dropCounter = 0;
 }
 
-// ピースを移動する関数
 export function playerMove(dir) {
   if (gameState.isGameOver || gameState.paused) return;
-  console.log('playerMove: ピースを移動します', { dir });
-  if (gameState.isGameOver) return;
   tetrisGame.movePiece(dir);
-  gameState.piece = tetrisGame.piece;
-  gameState.board = tetrisGame.board.grid;
-  global.draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
+  updateGameState();
 }
 
-// ピースを回転する関数
 export function playerRotate(dir) {
   if (gameState.isGameOver || gameState.paused) return;
-  console.log('playerRotate: ピースを回転します', { dir });
-  if (gameState.isGameOver) return;
   tetrisGame.rotatePiece(dir);
-  gameState.piece = tetrisGame.piece;
-  gameState.board = tetrisGame.board.grid;
-  global.draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
+  updateGameState();
 }
 
-// ゲームループ
+// --- ゲームループ ---
 export function update(time = 0) {
-  if (gameState.paused) return;
-  const deltaTime = time - gameState.lastTime;
-  gameState.lastTime = time;
-
-  // 現在のレベルに応じたドロップ間隔を更新
-  gameState.dropInterval = tetrisGame.getDropInterval();
-  
-  gameState.dropCounter += deltaTime;
-  if (gameState.dropCounter > gameState.dropInterval) {
-    playerDrop();
+  if (gameState.paused) {
+    requestAnimationFrame(update);
+    return;
   }
 
-  global.draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
-  gameState.gameLoopId = requestAnimationFrame(update);
+  const deltaTime = time - gameState.lastTime;
+  gameState.lastTime = time;
+  gameState.dropCounter += deltaTime;
+
+  gameState.dropInterval = tetrisGame.getDropInterval();
+
+  if (gameState.dropCounter > gameState.dropInterval) {
+    playerDrop();
+    gameState.dropCounter = 0;
+  }
+
+  draw();
+  updateUI();
+
+  if (!gameState.isGameOver) {
+    gameState.gameLoopId = requestAnimationFrame(update);
+  }
 }
+
+// --- 初期化とイベントハンドリング ---
 export const gameUI = new GameUI(gameState, {
-  movePiece: tetrisGame.movePiece.bind(tetrisGame),
-  dropPiece: tetrisGame.dropPiece.bind(tetrisGame),
-  rotatePiece: tetrisGame.rotatePiece.bind(tetrisGame),
-  update,
+  movePiece: playerMove,
+  dropPiece: playerDrop,
+  rotatePiece: playerRotate,
   resetGame
 });
 
-
-// キーハンドラ関数
-export function handleKeyDown(event) {
-  gameUI.onKeyDown(event);
+export function resetGame() {
+  tetrisGame.reset();
+  updateGameState();
+  gameState.paused = false;
+  if (gameState.gameLoopId) {
+    cancelAnimationFrame(gameState.gameLoopId);
+  }
+  gameState.gameLoopId = requestAnimationFrame(update);
+  console.log('ゲームがリセットされました。');
 }
 
-
-export function handleKeyUp(event) {
-  gameUI.onKeyUp(event);
-}
-
-// イベントリスナーの設定
-export function setupEventListeners(keyDownHandler = gameUI.onKeyDown, keyUpHandler = gameUI.onKeyUp) {
-  gameUI.setupEventListeners(keyDownHandler, keyUpHandler);
-}
-
-// ゲーム初期化
-export function init() {
-  console.log('init: ゲームの初期化を開始します');
-
-  try {
-    // ゲーム状態を初期化
-    console.log('init: ゲームの初期化を開始します');
-    const canvas = initGame();
-
-    if (!canvas) {
-      throw new Error('キャンバスの初期化に失敗しました');
+function setupEventListeners() {
+  gameUI.setupEventListeners(gameUI.onKeyDown.bind(gameUI), gameUI.onKeyUp.bind(gameUI));
+  window.addEventListener('resize', () => {
+    const canvas = document.getElementById('game');
+    if (canvas) {
+      canvas.width = gameState.board.cols * GAME_CONSTANTS.BLOCK_SIZE;
+      canvas.height = gameState.board.rows * GAME_CONSTANTS.BLOCK_SIZE;
+      draw();
     }
+  });
+}
 
-    // ゲームをリセット
-    console.log('init: ゲームをリセットします');
-    resetGame();
+export function init() {
+  try {
+    const canvas = document.getElementById('game');
+    gameState.ctx = canvas.getContext('2d');
+    canvas.width = gameState.board.cols * GAME_CONSTANTS.BLOCK_SIZE;
+    canvas.height = gameState.board.rows * GAME_CONSTANTS.BLOCK_SIZE;
 
-    // ゲーム状態をログに出力
-    gameState.logState();
-
-    // イベントリスナーを設定
-    console.log('init: イベントリスナーを設定します');
     setupEventListeners();
-
-    console.log('init: ゲームの初期化が完了しました');
-
-    // 外部から参照できるように必要なものを返す
-    return {
-      canvas,
-      gameState,
-      handleKeyDown,
-      handleKeyUp,
-      setupEventListeners,
-      eventManager,
-      initGame,
-      resetGame,
-      update,
-    };
+    resetGame();
+    console.log('ゲームの初期化が完了しました。');
   } catch (error) {
     console.error('ゲームの初期化中にエラーが発生しました:', error);
-    return null;
   }
 }
 
-const exports = {
-  init,
-  playerMove,
-  playerRotate,
-  playerDrop,
-  handleKeyDown,
-  handleKeyUp,
-  gameUI,
-  setupEventListeners,
-  gameState,
-  eventManager,
-  initGame,
-  resetGame,
-  update,
-};
-
+// --- エクスポートとブラウザ実行 ---
+const exports = { init, playerMove, playerRotate, playerDrop, gameUI, gameState, resetGame, update };
 export default exports;
 
-// テスト用にグローバルに公開
 if (typeof window !== 'undefined') {
-  window.tetris = window.tetris || {};
-  window.tetris.game = {
-    init,
-    gameState,
-    handleKeyDown: exports.handleKeyDown,
-    gameUI,
-    handleKeyUp,
-    eventManager,
-  };
-}
-
-// ゲームのスタート（ブラウザ実行時のみ）
-if (typeof document !== 'undefined' && typeof window !== 'undefined') {
-  document.addEventListener('DOMContentLoaded', () => {
-    // 既存のゲームループをクリア
-    if (gameState.gameLoopId) {
-      cancelAnimationFrame(gameState.gameLoopId);
-    }
-    initGame();
-  });  // ウィンドウリサイズ時の処理
-  window.addEventListener('resize', () => {
-    const canvas = document.getElementById('game');
-    if (canvas && gameState.ctx) {
-      // キャンバスのサイズを再設定
-      canvas.width = gameState.COLS * gameState.BLOCK;
-      canvas.height = gameState.ROWS * gameState.BLOCK;
-      // 再描画
-      global.draw(gameState.ctx, gameState.board, gameState.piece, gameState.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
-    }
-  });
+  window.tetris = { game: exports };
+  document.addEventListener('DOMContentLoaded', init);
 }
