@@ -35,7 +35,7 @@ jest.mock('../../src/game', () => ({
 
 // モジュールをインポート
 import * as gameModule from '../../src/game';
-import { gameState } from '../../src/game';
+import { gameState, gameStateManager, renderer } from '../../src/game';
 import GameUI from '../../src/ui/GameUI';
 import { GAME_CONSTANTS } from '../../src/constants/game';
 
@@ -132,25 +132,31 @@ describe('game.jsの初期化処理', () => {
     };
 
     // 各テストケースでgameStateをリセット
-    Object.assign(gameState, {
-      ctx: mockCtx,
-      canvas: { getContext: () => mockCtx },
-      board: [],
-      piece: null,
-      nextPiece: null,
-      score: 0,
-      lines: 0,
-      level: 1,
-      dropCounter: 0,
-      dropInterval: 0,
-      lastTime: 0,
-      gameLoopId: null,
-      isGameOver: false,
-      keys: {},
-      paused: false,
-      COLS: 10,
-      ROWS: 20
-    });
+    if (gameStateManager && gameStateManager.reset) {
+      gameStateManager.reset();
+      gameStateManager.set('ctx', mockCtx);
+      gameStateManager.set('canvas', { getContext: () => mockCtx });
+    } else {
+      Object.assign(gameState, {
+        ctx: mockCtx,
+        canvas: { getContext: () => mockCtx },
+        board: [],
+        piece: null,
+        nextPiece: null,
+        score: 0,
+        lines: 0,
+        level: 1,
+        dropCounter: 0,
+        dropInterval: 0,
+        lastTime: 0,
+        gameLoopId: null,
+        isGameOver: false,
+        keys: {},
+        paused: false,
+        COLS: 10,
+        ROWS: 20
+      });
+    }
 
     // モックのリセット
     jest.clearAllMocks();
@@ -239,9 +245,14 @@ describe('game.jsの初期化処理', () => {
       const result = actualGameModule.initGame();
 
       expect(result).toBe(mockCanvas);
-      expect(actualGameModule.gameState.ctx).toBe(mockCtx);
-      expect(mockCanvas.width).toBe(actualGameModule.gameState.COLS * 20); // GAME_CONSTANTS.BLOCK_SIZE
-      expect(mockCanvas.height).toBe(actualGameModule.gameState.ROWS * 20); // GAME_CONSTANTS.BLOCK_SIZE
+      // gameStateManagerを使っている場合のチェック
+      if (actualGameModule.gameStateManager) {
+        expect(actualGameModule.gameStateManager.get('ctx')).toBe(mockCtx);
+      } else {
+        expect(actualGameModule.gameState.ctx).toBe(mockCtx);
+      }
+      expect(mockCanvas.width).toBe(10 * 20); // COLS * BLOCK_SIZE
+      expect(mockCanvas.height).toBe(20 * 20); // ROWS * BLOCK_SIZE
     });
   });
 

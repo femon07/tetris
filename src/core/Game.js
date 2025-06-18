@@ -2,6 +2,8 @@
 // ゲーム全体の状態管理と進行を担当
 import { Board } from './Board.js';
 import { Piece } from './Piece.js';
+import { RotationSystem } from '../rotation/RotationSystem.js';
+import { ScoreCalculator } from '../scoring/ScoreCalculator.js';
 
 // テトロミノの形状と色のマッピング
 const TETROMINO_MAP = {
@@ -42,47 +44,6 @@ const TETROMINO_MAP = {
   ],
 };
 
-// SRSキックデータの構造: [state][kickIndex][x/y]
-// state: 現在の回転状態 (0-3)
-// kickIndex: キックテストのインデックス (0-4)
-// [x/y]: キックオフセット (x, y)
-export const SRS_KICKS_JLTSZ = [
-  // 0 -> R (0->1)
-  [
-    [0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]
-  ],
-  // R -> 2 (1->2)
-  [
-    [0, 0], [1, 0], [1, -1], [0, 2], [1, 2]
-  ],
-  // 2 -> L (2->3)
-  [
-    [0, 0], [1, 0], [1, 1], [0, -2], [1, -2]
-  ],
-  // L -> 0 (3->0)
-  [
-    [0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]
-  ]
-];
-
-const SRS_KICKS_I = [
-  // 0 -> R (0->1)
-  [
-    [0, 0], [-2, 0], [1, 0], [-2, -1], [1, 2]
-  ],
-  // R -> 2 (1->2)
-  [
-    [0, 0], [-1, 0], [2, 0], [-1, 2], [2, -1]
-  ],
-  // 2 -> L (2->3)
-  [
-    [0, 0], [2, 0], [-1, 0], [2, 1], [-1, -2]
-  ],
-  // L -> 0 (3->0)
-  [
-    [0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]
-  ]
-];
 
 export class Game {
   constructor(cols = 10, rows = 20, tetrominos = null) {
@@ -121,6 +82,10 @@ export class Game {
     // ドロップ間隔関連の初期化
     this.dropInterval = this.getDropInterval();
     this.isSoftDrop = false;
+    
+    // 回転システムとスコア計算器の初期化
+    this.rotationSystem = new RotationSystem();
+    this.scoreCalculator = new ScoreCalculator();
     
     // 初期化時に最初のピースを生成
     this.reset();
@@ -193,9 +158,8 @@ export class Game {
    * レベルアップをチェックし、必要に応じてレベルを上げる
    */
   checkLevelUp() {
-    const newLevel = Math.floor(this.lines / this.linesPerLevel) + 1;
-    if (newLevel > this.level) {
-      this.level = newLevel;
+    if (this.scoreCalculator.shouldLevelUp(this.lines, this.level)) {
+      this.level = this.scoreCalculator.calculateLevel(this.lines);
       return true;
     }
     return false;
@@ -338,19 +302,7 @@ export class Game {
    * @returns {number} 計算されたスコア
    */
   calculateScore(linesCleared) {
-    if (typeof linesCleared !== 'number' || linesCleared < 0) {
-      console.warn('Invalid linesCleared value:', linesCleared);
-      return 0;
-    }
-    
-    if (typeof this.level !== 'number' || this.level < 1) {
-      console.warn('Invalid level value:', this.level);
-      return 0;
-    }
-    
-    const points = [0, 40, 100, 300, 1200]; // 0-4ライン消したときの基礎得点
-    const index = Math.min(Math.max(0, Math.floor(linesCleared)), points.length - 1);
-    return points[index] * this.level;
+    return this.scoreCalculator.calculateLineScore(linesCleared, this.level);
   }
 
   /**
@@ -367,77 +319,19 @@ export class Game {
    * @returns {boolean} 回転が成功したかどうか
    */
   rotatePiece(dir) {
-    if (!this.piece || !this.piece.matrix || !Array.isArray(this.piece.matrix)) {
-      console.warn('Invalid piece for rotation');
+    if (!this.piece) {
+      console.warn('No piece to rotate');
       return false;
     }
 
-    try {
-      const originalPos = { ...this.piece.pos };
-      const originalMatrix = this.piece.matrix.map(row => 
-        Array.isArray(row) ? [...row] : []
-      );
-      const originalRotationState = this.piece.rotationState;
-      
-      // 現在の回転状態を検証
-      if (typeof originalRotationState !== 'number' || originalRotationState < 0 || originalRotationState > 3) {
-        console.error("無効な回転状態:", originalRotationState);
-        this.piece.matrix = originalMatrix;
-        this.piece.rotationState = originalRotationState;
-        return false;
-      }
+    // 回転システムを使って回転を試行
+    const result = this.rotationSystem.attemptRotation(
+      this.piece,
+      dir,
+      () => this.hasCollision()
+    );
 
-      // ピースを回転（回転状態の更新はPiece.rotate内で行う）
-      this.piece.rotate(dir);
-
-      // SRS (Super Rotation System) の壁蹴りデータ
-      // I-テトロミノとそれ以外のテトロミノで異なる
-      const kickData = this.piece.type === 'I' ? SRS_KICKS_I : SRS_KICKS_JLTSZ;
-      
-      // 現在の回転状態に基づいてキックデータを取得
-      const kicks = kickData[originalRotationState % 4]; // 0-3の範囲に収める
-      
-      if (!kicks || !Array.isArray(kicks)) {
-        console.error("Invalid kicks data:", kicks, "for rotation state:", originalRotationState);
-        // キックデータが取得できない場合は元に戻す
-        this.piece.matrix = originalMatrix;
-        this.piece.rotationState = originalRotationState;
-        return false;
-      }
-      
-      // 反時計回りの場合はキックデータを反転
-      const testSet = dir === 1 
-        ? [...kicks] // 配列のコピーを作成
-        : kicks.map(kick => {
-            if (!Array.isArray(kick) || kick.length !== 2) {
-              console.error("Invalid kick data format:", kick);
-              return [0, 0];
-            }
-            return [-kick[0], -kick[1]];
-          });
-
-      for (const [offsetX, offsetY] of testSet) {
-        this.piece.pos.x += offsetX;
-        this.piece.pos.y += offsetY;
-
-        if (!this.hasCollision()) {
-          // 衝突がなければ回転成功
-          return true;
-        }
-        // 衝突する場合は位置を戻して次のテストを試す
-        this.piece.pos.x -= offsetX;
-        this.piece.pos.y -= offsetY;
-      }
-
-      // 全てのテストで衝突する場合、元の状態に戻す
-      this.piece.matrix = originalMatrix;
-      this.piece.rotationState = originalRotationState;
-      this.piece.pos = { ...originalPos };
-      return false;
-    } catch (error) {
-      console.error('Error during piece rotation:', error);
-      return false;
-    }
+    return result.success;
   }
 }
 

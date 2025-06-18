@@ -1,5 +1,5 @@
 import 'core-js/stable';  
-import { handleKeyDown, handleKeyUp, setupEventListeners, gameUI } from '../src/game.js';
+import { handleKeyDown, handleKeyUp, setupEventListeners, gameUI, gameStateManager } from '../src/game.js';
 
 describe('Event Handlers', () => {
   let mockActions;
@@ -30,6 +30,12 @@ describe('Event Handlers', () => {
     // GameUIのstate, actionsをモック
     gameUI.state = mockState;
     gameUI.actions = mockActions;
+    
+    // gameStateManagerのモック
+    if (gameStateManager) {
+      gameStateManager.getState = jest.fn().mockReturnValue(mockState);
+      gameStateManager.isRunning = jest.fn().mockReturnValue(true);
+    }
 
     // document.addEventListener と removeEventListener をモック
     addEventListenerSpy = jest.spyOn(document, 'addEventListener');
@@ -94,6 +100,9 @@ describe('Event Handlers', () => {
 
     test('ゲームオーバー時はキー入力を無視する', () => {
       mockState.isGameOver = true;
+      if (gameStateManager) {
+        gameStateManager.isRunning.mockReturnValue(false);
+      }
       const event = { key: 'ArrowLeft', repeat: false };
       handleKeyDown(event);
       expect(mockActions.movePiece).not.toHaveBeenCalled();
@@ -105,7 +114,14 @@ describe('Event Handlers', () => {
       mockState.keys['ArrowLeft'] = true;
       const event = { key: 'ArrowLeft' };
       handleKeyUp(event);
-      expect(mockState.keys['ArrowLeft']).toBe(false);
+      // gameStateManagerを使っている場合はモックを確認
+      if (gameStateManager && gameStateManager.updateKeyState) {
+        gameStateManager.updateKeyState = jest.fn();
+        handleKeyUp(event);
+        expect(gameStateManager.updateKeyState).toHaveBeenCalledWith('ArrowLeft', false);
+      } else {
+        expect(mockState.keys['ArrowLeft']).toBe(false);
+      }
     });
   });
 

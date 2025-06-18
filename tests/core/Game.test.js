@@ -1,27 +1,33 @@
 import { Game } from '../../src/core/Game.js';
 import { Board } from '../../src/core/Board.js';
 import { Piece } from '../../src/core/Piece.js';
+import { RotationSystem } from '../../src/rotation/RotationSystem.js';
+import { ScoreCalculator } from '../../src/scoring/ScoreCalculator.js';
 
-// BoardとPieceのモック
+// Board、Piece、RotationSystem、ScoreCalculatorのモック
 jest.mock('../../src/core/Board.js');
 jest.mock('../../src/core/Piece.js');
+jest.mock('../../src/rotation/RotationSystem.js');
+jest.mock('../../src/scoring/ScoreCalculator.js');
 
 describe('Game クラス', () => {
   let game;
   let mockBoardInstance;
   let mockPieceInstance;
+  let mockRotationSystem;
+  let mockScoreCalculator;
 
   beforeEach(() => {
-    // BoardとPieceのインスタンスが返すべきモックを設定
+    // Board、Piece、RotationSystem、ScoreCalculatorのインスタンスをモック
     mockBoardInstance = { 
       clear: jest.fn(), 
       merge: jest.fn(), 
       clearLines: jest.fn().mockReturnValue(0),
       isInside: jest.fn().mockReturnValue(true),
       getCell: jest.fn().mockReturnValue(0),
-      cols: 10, // Boardのcolsプロパティをモック
-      rows: 20, // Boardのrowsプロパティをモック
-      grid: Array.from({ length: 20 }, () => Array(10).fill(0)) // グリッドをモック
+      cols: 10,
+      rows: 20,
+      grid: Array.from({ length: 20 }, () => Array(10).fill(0))
     };
     Board.mockImplementation(() => mockBoardInstance);
 
@@ -29,22 +35,41 @@ describe('Game クラス', () => {
       matrix: [[1]], 
       pos: { x: 0, y: 0 },
       move: jest.fn(),
-      rotate: jest.fn()
+      rotate: jest.fn(),
+      type: 'T',
+      rotationState: 0
     };
     Piece.mockImplementation(() => mockPieceInstance);
+
+    mockRotationSystem = {
+      attemptRotation: jest.fn().mockReturnValue({ success: true })
+    };
+    RotationSystem.mockImplementation(() => mockRotationSystem);
+
+    mockScoreCalculator = {
+      calculateLineScore: jest.fn().mockReturnValue(100),
+      shouldLevelUp: jest.fn().mockReturnValue(false),
+      calculateLevel: jest.fn().mockReturnValue(1)
+    };
+    ScoreCalculator.mockImplementation(() => mockScoreCalculator);
 
     // 各テストの前にモックをリセット
     Board.mockClear();
     Piece.mockClear();
+    RotationSystem.mockClear();
+    ScoreCalculator.mockClear();
   });
 
-  test('コンストラクタはBoardとPieceを初期化する', () => {
+  test('コンストラクタはBoard、Piece、RotationSystem、ScoreCalculatorを初期化する', () => {
     const game = new Game();
-    // コンストラクタでresetが呼ばれるため、Boardが1回、Pieceが2回（piece + nextPiece）呼ばれる
     expect(Board).toHaveBeenCalledTimes(1);
+    expect(Piece).toHaveBeenCalledTimes(2); // piece + nextPiece
+    expect(RotationSystem).toHaveBeenCalledTimes(1);
+    expect(ScoreCalculator).toHaveBeenCalledTimes(1);
     expect(game.board).toBe(mockBoardInstance);
-    expect(Piece).toHaveBeenCalledTimes(2); // resetでpieceとnextPieceが生成される
     expect(game.piece).toBe(mockPieceInstance);
+    expect(game.rotationSystem).toBe(mockRotationSystem);
+    expect(game.scoreCalculator).toBe(mockScoreCalculator);
     expect(game.score).toBe(0);
     expect(game.lines).toBe(0);
     expect(game.level).toBe(1);
@@ -119,11 +144,11 @@ describe('Game クラス', () => {
     test('ラインがクリアされた場合、スコアが更新される', () => {
       game.hasCollision = jest.fn().mockReturnValue(true);
       mockBoardInstance.clearLines.mockReturnValue(2); // 2ラインクリア
-      game.calculateScore = jest.fn().mockReturnValue(100);
+      mockScoreCalculator.calculateLineScore.mockReturnValue(200);
       game.dropPiece();
-      expect(game.score).toBe(100);
+      expect(game.score).toBe(200);
       expect(game.lines).toBe(2);
-      expect(game.calculateScore).toHaveBeenCalledWith(2);
+      expect(mockScoreCalculator.calculateLineScore).toHaveBeenCalledWith(2, 1);
     });
   });
 
@@ -153,19 +178,28 @@ describe('Game クラス', () => {
       game.reset();
     });
 
-    test('ピースが衝突しない場合、ピースは回転する', () => {
-      game.hasCollision = jest.fn().mockReturnValue(false);
-      game.rotatePiece(1);
-      expect(mockPieceInstance.rotate).toHaveBeenCalledWith(1);
+    test('回転システムを使ってピースを回転する', () => {
+      mockRotationSystem.attemptRotation.mockReturnValue({ success: true });
+      const result = game.rotatePiece(1);
+      expect(mockRotationSystem.attemptRotation).toHaveBeenCalledWith(
+        mockPieceInstance,
+        1,
+        expect.any(Function)
+      );
+      expect(result).toBe(true);
     });
 
-    test('ピースが衝突する場合、ピースは回転前の状態に戻る', () => {
-      const originalMatrix = [[1, 2], [3, 4]];
-      mockPieceInstance.matrix = originalMatrix; // 参照をコピー
-      game.hasCollision = jest.fn().mockReturnValue(true);
-      game.rotatePiece(1);
-      expect(mockPieceInstance.rotate).toHaveBeenCalledWith(1);
-      expect(mockPieceInstance.matrix).toEqual(originalMatrix); // 内容が同じことを確認
+    test('回転が失敗した場合、falseを返す', () => {
+      mockRotationSystem.attemptRotation.mockReturnValue({ success: false });
+      const result = game.rotatePiece(1);
+      expect(result).toBe(false);
+    });
+
+    test('ピースがない場合、falseを返す', () => {
+      game.piece = null;
+      const result = game.rotatePiece(1);
+      expect(result).toBe(false);
+      expect(mockRotationSystem.attemptRotation).not.toHaveBeenCalled();
     });
   });
 
@@ -203,17 +237,32 @@ describe('Game クラス', () => {
     });
   });
 
-  test('calculateScoreは正しいスコアを計算する', () => {
+  test('calculateScoreはScoreCalculatorを使ってスコアを計算する', () => {
     const game = new Game();
     game.reset();
-    game.level = 1;
-    expect(game.calculateScore(1)).toBe(40);
-    expect(game.calculateScore(2)).toBe(100);
-    expect(game.calculateScore(3)).toBe(300);
-    expect(game.calculateScore(4)).toBe(1200);
-    expect(game.calculateScore(0)).toBe(0);
-
     game.level = 2;
-    expect(game.calculateScore(1)).toBe(80);
+    
+    mockScoreCalculator.calculateLineScore.mockReturnValue(200);
+    const result = game.calculateScore(1);
+    
+    expect(mockScoreCalculator.calculateLineScore).toHaveBeenCalledWith(1, 2);
+    expect(result).toBe(200);
+  });
+
+  test('checkLevelUpはScoreCalculatorを使ってレベルアップをチェックする', () => {
+    const game = new Game();
+    game.reset();
+    game.lines = 10;
+    game.level = 1;
+    
+    mockScoreCalculator.shouldLevelUp.mockReturnValue(true);
+    mockScoreCalculator.calculateLevel.mockReturnValue(2);
+    
+    const result = game.checkLevelUp();
+    
+    expect(mockScoreCalculator.shouldLevelUp).toHaveBeenCalledWith(10, 1);
+    expect(mockScoreCalculator.calculateLevel).toHaveBeenCalledWith(10);
+    expect(game.level).toBe(2);
+    expect(result).toBe(true);
   });
 });
