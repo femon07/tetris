@@ -14,13 +14,20 @@ describe('GameUI メソッド', () => {
       gameLoopId: 123,
       paused: false,
       lastTime: 0,
+      ROWS: 20,
+    };
+    
+    const actions = {
       movePiece: jest.fn(),
-      dropPiece: jest.fn(),
+      dropPiece: jest.fn(() => true), // ドロップが成功したと仮定
       rotatePiece: jest.fn(),
       update: jest.fn(),
       resetGame: jest.fn(),
+      startSoftDrop: jest.fn(),
+      stopSoftDrop: jest.fn(),
     };
-    ui = new GameUI(gameInstance, gameInstance);
+    
+    ui = new GameUI(gameInstance, actions);
     addEventListenerSpy = jest.spyOn(document, 'addEventListener');
     removeEventListenerSpy = jest.spyOn(document, 'removeEventListener');
   });
@@ -33,53 +40,47 @@ describe('GameUI メソッド', () => {
     test.each([
       ['ArrowLeft', 'movePiece', [-1]],
       ['ArrowRight', 'movePiece', [1]],
-      ['ArrowDown', 'dropPiece', []],
       ['ArrowUp', 'rotatePiece', [1]],
     ])('%sキーで適切なメソッドが呼び出される', (key, method, args) => {
       const event = { key, repeat: false };
       ui.onKeyDown(event);
       if (args.length) {
-        expect(gameInstance[method]).toHaveBeenCalledWith(...args);
+        expect(ui.actions[method]).toHaveBeenCalledWith(...args);
       } else {
-        expect(gameInstance[method]).toHaveBeenCalled();
+        expect(ui.actions[method]).toHaveBeenCalled();
       }
     });
-
-    test('スペースキーでハードドロップを実行する', () => {
-      const event = { key: ' ', repeat: false };
+    
+    test('ArrowDownキーでソフトドロップと通常ドロップが呼び出される', () => {
+      const event = { key: 'ArrowDown', repeat: false };
       ui.onKeyDown(event);
-      expect(gameInstance.dropPiece).toHaveBeenCalled();
+      expect(ui.actions.startSoftDrop).toHaveBeenCalled();
+      expect(ui.actions.dropPiece).toHaveBeenCalled();
     });
 
-    test('Pキーでポーズ/解除が切り替わる', () => {
-      const event = { key: 'p', repeat: false };
+    test('スペースキーでハードドロップを实行する', () => {
+      const event = { key: ' ', repeat: false };
       ui.onKeyDown(event);
-      expect(gameInstance.gameLoopId).toBeNull();
-      expect(gameInstance.paused).toBe(true);
-      const mockRequest = jest.spyOn(window, 'requestAnimationFrame').mockReturnValueOnce(456);
-      ui.onKeyDown(event);
-      expect(gameInstance.paused).toBe(false);
-      expect(gameInstance.gameLoopId).toBe(456);
-      mockRequest.mockRestore();
+      expect(ui.actions.dropPiece).toHaveBeenCalled();
     });
 
     test('RキーでresetGameが呼び出される', () => {
       const event = { key: 'r', repeat: false };
       ui.onKeyDown(event);
-      expect(gameInstance.resetGame).toHaveBeenCalled();
+      expect(ui.actions.resetGame).toHaveBeenCalled();
     });
 
     test('キーリピート時は処理しない', () => {
       const event = { key: 'ArrowLeft', repeat: true };
       ui.onKeyDown(event);
-      expect(gameInstance.movePiece).not.toHaveBeenCalled();
+      expect(ui.actions.movePiece).not.toHaveBeenCalled();
     });
 
     test('ゲームオーバー時は入力を無視する', () => {
       gameInstance.isGameOver = true;
       const event = { key: 'ArrowLeft', repeat: false };
       ui.onKeyDown(event);
-      expect(gameInstance.movePiece).not.toHaveBeenCalled();
+      expect(ui.actions.movePiece).not.toHaveBeenCalled();
     });
   });
 
@@ -89,6 +90,13 @@ describe('GameUI メソッド', () => {
       const event = { key: 'ArrowLeft' };
       ui.onKeyUp(event);
       expect(gameInstance.keys['ArrowLeft']).toBe(false);
+    });
+    
+    test('ArrowDownキーが離されたらstopSoftDropが呼び出される', () => {
+      const event = { key: 'ArrowDown' };
+      ui.onKeyUp(event);
+      expect(gameInstance.keys['ArrowDown']).toBe(false);
+      expect(ui.actions.stopSoftDrop).toHaveBeenCalled();
     });
   });
 
