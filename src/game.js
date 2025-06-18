@@ -7,7 +7,9 @@ export let tetrisGame = new Game();
 export const eventManager = new EventTarget();
 export const gameState = {
   ctx: null,
-  board: { grid: [], rows: GAME_CONSTANTS.ROWS, cols: GAME_CONSTANTS.COLS },
+  board: [],
+  ROWS: GAME_CONSTANTS.ROWS,
+  COLS: GAME_CONSTANTS.COLS,
   piece: null,
   nextPiece: null,
   score: 0,
@@ -21,11 +23,19 @@ export const gameState = {
   paused: false,
   keys: {},
 
+  initBoard() {
+    this.board = Array(this.ROWS).fill(null).map(() => Array(this.COLS).fill(0));
+  },
+
   logState() {
-    console.log('--- 現在のゲーム状態 ---');
-    console.log(`スコア: ${this.score}, ライン: ${this.lines}, レベル: ${this.level}`);
-    console.log(`ゲームオーバー: ${this.isGameOver}, 一時停止: ${this.paused}`);
-    console.log('--------------------');
+    console.log('Current Game State:', {
+      score: this.score,
+      lines: this.lines,
+      level: this.level,
+      isGameOver: this.isGameOver,
+      piece: this.piece,
+      nextPiece: this.nextPiece,
+    });
   }
 };
 
@@ -52,7 +62,7 @@ function draw() {
   ctx.fillStyle = '#f0f0f0';
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-  drawMatrix(ctx, board.grid, { x: 0, y: 0 }, COLORS, BLOCK_SIZE);
+  drawMatrix(ctx, tetrisGame.board.grid, { x: 0, y: 0 }, COLORS, BLOCK_SIZE);
   if (piece) {
     drawMatrix(ctx, piece.matrix, piece.pos, COLORS, BLOCK_SIZE);
   }
@@ -71,9 +81,30 @@ function draw() {
 
 // --- UI更新 --- 
 function updateUI() {
-  document.getElementById('score').textContent = gameState.score;
-  document.getElementById('lines').textContent = gameState.lines;
-  document.getElementById('level').textContent = gameState.level;
+  updateScoreDisplay(gameState.score);
+  updateLinesDisplay(gameState.lines);
+  updateLevelDisplay(gameState.level);
+}
+
+export function updateScoreDisplay(score) {
+  const scoreElement = document.getElementById('score');
+  if (scoreElement) {
+    scoreElement.textContent = score.toString();
+  }
+}
+
+export function updateLinesDisplay(lines) {
+  const linesElement = document.getElementById('lines');
+  if (linesElement) {
+    linesElement.textContent = lines.toString();
+  }
+}
+
+export function updateLevelDisplay(level) {
+  const levelElement = document.getElementById('level');
+  if (levelElement) {
+    levelElement.textContent = level.toString();
+  }
 }
 
 // --- ゲームロジック --- 
@@ -84,7 +115,7 @@ function updateGameState() {
   gameState.isGameOver = tetrisGame.isGameOver;
   gameState.piece = tetrisGame.piece;
   gameState.nextPiece = tetrisGame.nextPiece;
-  gameState.board.grid = tetrisGame.board.grid;
+  gameState.board = tetrisGame.board.grid;
 }
 
 export function playerDrop() {
@@ -161,8 +192,8 @@ function setupEventListeners() {
   window.addEventListener('resize', () => {
     const canvas = document.getElementById('game');
     if (canvas) {
-      canvas.width = gameState.board.cols * GAME_CONSTANTS.BLOCK_SIZE;
-      canvas.height = gameState.board.rows * GAME_CONSTANTS.BLOCK_SIZE;
+      canvas.width = gameState.COLS * GAME_CONSTANTS.BLOCK_SIZE;
+      canvas.height = gameState.ROWS * GAME_CONSTANTS.BLOCK_SIZE;
       draw();
     }
   });
@@ -179,26 +210,69 @@ export function init() {
       return null;
     }
     
-    gameState.ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.error('2Dコンテキストの取得に失敗しました');
+      return null;
+    }
+    
+    gameState.ctx = ctx;
     gameState.canvas = canvas; // テストで期待されているプロパティ
-    canvas.width = gameState.board.cols * GAME_CONSTANTS.BLOCK_SIZE;
-    canvas.height = gameState.board.rows * GAME_CONSTANTS.BLOCK_SIZE;
+    canvas.width = gameState.COLS * GAME_CONSTANTS.BLOCK_SIZE;
+    canvas.height = gameState.ROWS * GAME_CONSTANTS.BLOCK_SIZE;
 
     setupEventListeners();
     resetGame();
     console.log('ゲームの初期化が完了しました。');
-    return canvas;
+    
+    // テスト用の返り値
+    return {
+      canvas,
+      eventManager,
+      gameState,
+      handleKeyDown,
+      handleKeyUp,
+      initGame: init,
+      resetGame,
+      setupEventListeners,
+      update
+    };
   } catch (error) {
     console.error('ゲームの初期化中にエラーが発生しました:', error);
     return null;
   }
 }
 
+// initGame関数はinitのエイリアス（テスト互換性のため）
+export function initGame() {
+  const canvas = document.getElementById('game');
+  if (!canvas) {
+    console.error('Canvas要素が見つかりません');
+    return null;
+  }
+  
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    console.error('2Dコンテキストの取得に失敗しました');
+    return null;
+  }
+  
+  gameState.ctx = ctx;
+  gameState.canvas = canvas;
+  canvas.width = gameState.COLS * GAME_CONSTANTS.BLOCK_SIZE;
+  canvas.height = gameState.ROWS * GAME_CONSTANTS.BLOCK_SIZE;
+  
+  return canvas;
+}
+
 // --- エクスポートとブラウザ実行 ---
 export const handleKeyDown = gameUI.onKeyDown.bind(gameUI);
 export const handleKeyUp = gameUI.onKeyUp.bind(gameUI);
-export const initGame = init; // テスト互換性のためのエイリアス
 export { draw }; // draw関数をエクスポート
+
+export function setTetrisGame(newGame) {
+  tetrisGame = newGame;
+}
 
 const exports = { init, initGame, playerMove, playerRotate, playerDrop, gameUI, gameState, resetGame, update, handleKeyDown, handleKeyUp, setupEventListeners, draw, tetrisGame };
 export default exports;

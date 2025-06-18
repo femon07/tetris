@@ -211,8 +211,8 @@ describe('game.jsの初期化処理', () => {
 
       expect(result).toBe(mockCanvas);
       expect(actualGameModule.gameState.ctx).toBe(mockCtx);
-      expect(mockCanvas.width).toBe(actualGameModule.gameState.COLS * actualGameModule.gameState.BLOCK);
-      expect(mockCanvas.height).toBe(actualGameModule.gameState.ROWS * actualGameModule.gameState.BLOCK);
+      expect(mockCanvas.width).toBe(actualGameModule.gameState.COLS * 20); // GAME_CONSTANTS.BLOCK_SIZE
+      expect(mockCanvas.height).toBe(actualGameModule.gameState.ROWS * 20); // GAME_CONSTANTS.BLOCK_SIZE
     });
   });
 

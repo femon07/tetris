@@ -18,6 +18,37 @@ const setupGameState = () => {
   canvas.id = 'game';
   document.body.appendChild(canvas);
   
+  // キャンバスのコンテキストをモック
+  const mockCtx = {
+    fillRect: jest.fn(),
+    clearRect: jest.fn(),
+    beginPath: jest.fn(),
+    moveTo: jest.fn(),
+    lineTo: jest.fn(),
+    stroke: jest.fn(),
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
+    canvas: canvas
+  };
+  canvas.getContext = jest.fn(() => mockCtx);
+  
+  // DOM要素を作成
+  const scoreElement = document.createElement('div');
+  scoreElement.id = 'score';
+  scoreElement.textContent = '0';
+  document.body.appendChild(scoreElement);
+  
+  const linesElement = document.createElement('div');
+  linesElement.id = 'lines';
+  linesElement.textContent = '0';
+  document.body.appendChild(linesElement);
+  
+  const levelElement = document.createElement('div');
+  levelElement.id = 'level';
+  levelElement.textContent = '1';
+  document.body.appendChild(levelElement);
+  
   // ゲームを初期化
   initGame();
   

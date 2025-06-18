@@ -85,8 +85,8 @@ describe('ゲーム初期化処理', () => {
       expect(result).toBe(canvas);
       expect(gameState.ctx).toBeDefined();
       expect(gameState.canvas).toBe(canvas);
-      expect(canvas.width).toBe(gameState.board.cols * GAME_CONSTANTS.BLOCK_SIZE);
-      expect(canvas.height).toBe(gameState.board.rows * GAME_CONSTANTS.BLOCK_SIZE);
+      expect(canvas.width).toBe(gameState.COLS * GAME_CONSTANTS.BLOCK_SIZE);
+      expect(canvas.height).toBe(gameState.ROWS * GAME_CONSTANTS.BLOCK_SIZE);
       expect(console.error).not.toHaveBeenCalled();
       
       // 後片付け

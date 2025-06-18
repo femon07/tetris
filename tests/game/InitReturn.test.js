@@ -35,8 +35,8 @@ describe('init関数の返り値', () => {
     document.addEventListener = jest.fn();
     document.removeEventListener = jest.fn();
     
-    // global.drawのモックをリセット
-    jest.spyOn(global, 'draw').mockImplementation(jest.fn());
+    // drawのモックをリセット
+    draw.mockClear();
   });
 
 
@@ -44,7 +44,6 @@ describe('init関数の返り値', () => {
     jest.restoreAllMocks();
     // グローバルな状態をクリア
     delete global.mockCtx;
-    delete global.draw;
   });
 
   test('返り値のキー一覧を確認する', () => {
