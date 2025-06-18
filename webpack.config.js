@@ -24,7 +24,8 @@ export default {
     },
     compress: true,
     port: 8080,
-    hot: true,
+    hot: false, // HMRを無効化
+    liveReload: true, // ライブリロードを有効化
     open: true,
     historyApiFallback: true,
     client: {
@@ -32,6 +33,7 @@ export default {
         errors: true,
         warnings: false,
       },
+      logging: 'warn',
     },
   },
   // モジュール解決の設定を追加
