@@ -171,7 +171,7 @@ export class Game {
    * @returns {boolean} 移動が成功したかどうか
    */
   movePiece(dx) {
-    if (!this.piece) return false;
+    if (!this.piece || this.isGameOver) return false;
     
     this.piece.move(dx, 0);
     
@@ -217,11 +217,15 @@ export class Game {
           if (
             boardX < 0 ||
             boardX >= this.board.cols ||
-            boardY >= this.board.rows ||
-            (boardY >= 0 && 
-             this.board.grid[boardY] && 
-             this.board.grid[boardY][boardX] !== 0)
+            boardY >= this.board.rows
           ) {
+            return true;
+          }
+          
+          // ボード内でブロックがすでにある場合は衝突（y >= 0の場合のみ）
+          if (boardY >= 0 && 
+              this.board.grid[boardY] && 
+              this.board.grid[boardY][boardX] !== 0) {
             return true;
           }
         }
@@ -238,18 +242,26 @@ export class Game {
     this.piece = this.nextPiece || this.createPiece(Math.floor(Math.random() * this.tetrominos.length));
     this.nextPiece = this.createPiece(Math.floor(Math.random() * this.tetrominos.length));
     
-    // 新しいピースが最初から衝突していたらゲームオーバー
+    // ゲームオーバー判定: ピースを一時的にY=0の位置に移動させて衝突判定を行う
+    const originalY = this.piece.pos.y;
+    this.piece.pos.y = 0; // 一時的にY座標を0に設定
+
     if (this.hasCollision()) {
       this.isGameOver = true;
+      this.piece = null; // ゲームオーバー時にピースをボードに固定しない
+    } else {
+      this.piece.pos.y = originalY; // 衝突がなければ元の位置に戻す
     }
   }
+  
+  
   
   /**
    * ピースを1マス下に移動させる
    * @returns {boolean} 移動が成功したかどうか
    */
   dropPiece() {
-    if (!this.piece) return false;
+    if (!this.piece || this.isGameOver) return false;
     
     this.piece.move(0, 1);
     
@@ -266,6 +278,7 @@ export class Game {
         this.checkLevelUp();
       }
       
+      // 新しいピースをスポーン
       this.spawnPiece();
       return false;
     }
@@ -319,8 +332,8 @@ export class Game {
    * @returns {boolean} 回転が成功したかどうか
    */
   rotatePiece(dir) {
-    if (!this.piece) {
-      console.warn('No piece to rotate');
+    if (!this.piece || this.isGameOver) {
+      console.warn('No piece to rotate or game is over');
       return false;
     }
 

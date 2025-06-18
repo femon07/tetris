@@ -125,12 +125,16 @@ export function playerDrop() {
     }
     
     const dropped = tetrisGame.dropPiece();
-    updateGameState();
-    
-    if (gameStateManager.get('isGameOver')) {
-      alert('Game Over!');
+    // まずゲームオーバー判定
+    if (tetrisGame.isGameOver) {
+      gameStateManager.set('isGameOver', true);
+      updateGameState();
       gameStateManager.stopGameLoop();
+      alert('Game Over!');
+      return false;
     }
+    // 通常時は同期
+    updateGameState();
     return dropped;
   } catch (error) {
     console.error('Error in playerDrop:', error);

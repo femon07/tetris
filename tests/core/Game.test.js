@@ -121,8 +121,11 @@ describe('Game クラス', () => {
       
       // hasCollisionをモック化してmove(0,1)後に衝突するようにする
       game.hasCollision = jest.fn()
-        .mockReturnValueOnce(true)  // piece.move(0,1)後の衝突チェック
-        .mockReturnValue(false);    // spawnPiece後の新しいピースチェック
+        .mockReturnValueOnce(true)  // piece.move(0,1)後の衝突チェック（dropPiece内）
+        .mockReturnValue(false);    // その他
+      
+      // 新しいピースのスポーン時にゲームオーバーではないことを明示
+      game.checkGameOverCondition = jest.fn().mockReturnValue(false);
 
       game.dropPiece();
       
@@ -135,8 +138,12 @@ describe('Game クラス', () => {
 
     test('ピースが衝突し、新しいピースも衝突する場合、ゲームオーバーになる', () => {
       game.hasCollision = jest.fn()
-        .mockReturnValueOnce(true) // 最初の衝突チェックでtrue
-        .mockReturnValueOnce(true); // 新しいピース生成後の衝突チェックでtrue
+        .mockReturnValueOnce(true)  // dropPiece内のmove(0,1)後の衝突
+        .mockReturnValue(false);    // その他
+      
+      // 新しいピースのスポーン時にゲームオーバー条件を満たす
+      game.checkGameOverCondition = jest.fn().mockReturnValue(true);
+      
       game.dropPiece();
       expect(game.isGameOver).toBe(true);
     });
