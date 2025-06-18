@@ -20,7 +20,6 @@ export const gameState = {
   lastTime: 0,
   gameLoopId: null,
   isGameOver: false,
-  paused: false,
   keys: {},
 
   initBoard() {
@@ -145,10 +144,8 @@ export function playerRotate(dir) {
 
 // --- ゲームループ ---
 export function update(time = 0) {
-  // 次のフレームをリクエスト
   gameState.gameLoopId = requestAnimationFrame(update);
-  
-  if (gameState.paused || gameState.isGameOver) {
+  if (gameState.isGameOver) {
     return;
   }
 

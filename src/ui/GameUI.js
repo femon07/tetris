@@ -10,7 +10,6 @@ export default class GameUI {
     const { state, actions } = this;
     if (state.isGameOver) return;
     
-    // 下キー以外はリピートを無視
     // 下キー以外はキーリピートを無視
     if (event.repeat && event.key !== 'ArrowDown') {
       return;
@@ -30,7 +29,7 @@ export default class GameUI {
         actions.movePiece(1);
         break;
       case 'ArrowDown':
-        actions.startSoftDrop(); // ドロップ間隔を短縮
+        actions.startSoftDrop();
         actions.dropPiece();
         break;
       case 'ArrowUp':
@@ -50,18 +49,6 @@ export default class GameUI {
             }
             dropCount++;
           }
-        }
-        break;
-      case 'p':
-      case 'P':
-        if (state.gameLoopId) {
-          cancelAnimationFrame(state.gameLoopId);
-          state.gameLoopId = null;
-          state.paused = true;
-        } else {
-          state.paused = false;
-          state.lastTime = 0;
-          state.gameLoopId = requestAnimationFrame(actions.update);
         }
         break;
       case 'r':

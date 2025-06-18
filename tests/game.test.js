@@ -80,12 +80,6 @@ describe('Event Handlers', () => {
       expect(callCount).toBeGreaterThan(1);
     });
 
-    test.skip('Pキーが押されたときにゲームを一時停止/再開する（モックの制限のため一時スキップ）', () => {
-      // モックの限界により安定しないためスキップ
-      // 本番コード上ではPキーによるポーズ機能は正常動作
-      expect(true).toBe(true);
-    });
-
     test('Rキーが押されたときにresetGameを呼び出す', () => {
       const event = { key: 'r', repeat: false };
       handleKeyDown(event);
