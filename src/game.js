@@ -42,11 +42,13 @@ function draw() {
     const gameData = {
       boardGrid: tetrisGame && tetrisGame.board ? tetrisGame.board.grid : null,
       piece: state.piece,
-      nextPiece: state.nextPiece
+      nextPiece: state.nextPiece,
+      holdPiece: state.holdPiece
     };
     
     const nextPieceCanvas = document.getElementById('next-piece-canvas');
-    renderer.render(gameData, nextPieceCanvas);
+    const holdPieceCanvas = document.getElementById('hold-piece-canvas');
+    renderer.render(gameData, nextPieceCanvas, holdPieceCanvas);
   } catch (error) {
     console.error('Unexpected error in draw function:', error);
   }
@@ -185,6 +187,24 @@ export function playerRotate(dir) {
   }
 }
 
+export function playerHold() {
+  try {
+    if (!gameStateManager.isRunning()) return;
+    
+    if (!tetrisGame || typeof tetrisGame.holdPiece !== 'function') {
+      console.error('Invalid tetrisGame object or missing holdPiece method');
+      return;
+    }
+    
+    const result = tetrisGame.holdPiece();
+    if (result) {
+      updateGameState();
+    }
+  } catch (error) {
+    console.error('Error in playerHold:', error);
+  }
+}
+
 // --- ゲームループ ---
 export function update(time = 0) {
   try {
@@ -251,6 +271,7 @@ export const gameUI = new GameUI(gameState, {
   movePiece: playerMove,
   dropPiece: playerDrop,
   rotatePiece: playerRotate,
+  holdPiece: playerHold,
   resetGame,
   update,
   getDropInterval: () => tetrisGame.getDropInterval(),
@@ -394,5 +415,5 @@ export function setTetrisGame(newGame) {
   tetrisGame = newGame;
 }
 
-const exports = { init, initGame, playerMove, playerRotate, playerDrop, gameUI, gameState, gameStateManager, renderer, resetGame, update, setupEventListeners, draw, tetrisGame };
+const exports = { init, initGame, playerMove, playerRotate, playerDrop, playerHold, gameUI, gameState, gameStateManager, renderer, resetGame, update, setupEventListeners, draw, tetrisGame };
 export default exports;

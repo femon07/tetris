@@ -21,6 +21,7 @@ describe('GameUI メソッド', () => {
       movePiece: jest.fn(),
       dropPiece: jest.fn(() => true), // ドロップが成功したと仮定
       rotatePiece: jest.fn(),
+      holdPiece: jest.fn(),
       update: jest.fn(),
       resetGame: jest.fn(),
       startSoftDrop: jest.fn(),
@@ -66,6 +67,18 @@ describe('GameUI メソッド', () => {
       const event = { key: ' ', repeat: false };
       ui.onKeyDown(event);
       expect(ui.actions.dropPiece).toHaveBeenCalled();
+    });
+
+    test('CキーでholdPieceが呼び出される', () => {
+      const event = { key: 'c', repeat: false };
+      ui.onKeyDown(event);
+      expect(ui.actions.holdPiece).toHaveBeenCalled();
+    });
+
+    test('ShiftキーでholdPieceが呼び出される', () => {
+      const event = { key: 'Shift', repeat: false };
+      ui.onKeyDown(event);
+      expect(ui.actions.holdPiece).toHaveBeenCalled();
     });
 
     test('RキーでresetGameが呼び出される', () => {

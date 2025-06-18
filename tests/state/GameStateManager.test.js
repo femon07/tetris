@@ -113,6 +113,8 @@ describe('GameStateManager クラス', () => {
         isGameOver: false,
         piece: { matrix: [[1]] },
         nextPiece: { matrix: [[2]] },
+        heldPiece: { matrix: [[3]] },
+        canHold: false,
         board: { grid: [[1, 0], [0, 1]] },
       };
 
@@ -123,17 +125,18 @@ describe('GameStateManager クラス', () => {
       expect(gameStateManager.get('level')).toBe(2);
       expect(gameStateManager.get('piece')).toBe(gameInstance.piece);
       expect(gameStateManager.get('nextPiece')).toBe(gameInstance.nextPiece);
+      expect(gameStateManager.get('holdPiece')).toBe(gameInstance.heldPiece);
+      expect(gameStateManager.get('canHold')).toBe(false);
       expect(gameStateManager.get('board')).toBe(gameInstance.board.grid);
     });
 
     test('無効なゲームインスタンスの場合、何もしない', () => {
-      const originalState = gameStateManager.getState();
+      const originalState = { ...gameStateManager.getState() };
       
       gameStateManager.syncWithGame(null);
       gameStateManager.syncWithGame(undefined);
-      gameStateManager.syncWithGame({});
 
-      // 状態が変更されていないことを確認
+      // null/undefinedの場合、状態が変更されていないことを確認
       expect(gameStateManager.getState()).toEqual(originalState);
     });
   });

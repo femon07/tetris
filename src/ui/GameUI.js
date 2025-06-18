@@ -57,6 +57,14 @@ export default class GameUI {
           }
         }
         break;
+      case 'c':
+      case 'C':
+      case 'Shift':
+        // ホールド機能
+        if (actions.holdPiece) {
+          actions.holdPiece();
+        }
+        break;
       case 'r':
       case 'R':
         actions.resetGame();

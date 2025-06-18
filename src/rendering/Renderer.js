@@ -127,14 +127,50 @@ export class Renderer {
   }
 
   /**
+   * ホールドピースを描画する
+   * @param {HTMLCanvasElement} holdPieceCanvas - ホールドピース用キャンバス
+   * @param {Object} holdPiece - ホールドピース
+   */
+  drawHoldPiece(holdPieceCanvas, holdPiece) {
+    try {
+      if (!holdPieceCanvas || !holdPiece || !holdPiece.matrix) return;
+
+      const matrix = holdPiece.matrix;
+      
+      // 一時的なレンダラーを作成して描画
+      const tempRenderer = new Renderer(holdPieceCanvas, this.colors, this.blockSize);
+      
+      // ホールドエリアのサイズを設定
+      holdPieceCanvas.width = 4 * this.blockSize;
+      holdPieceCanvas.height = 4 * this.blockSize;
+      
+      // 背景をクリア
+      tempRenderer.clearCanvas();
+      
+      // ピースをキャンバスの中央に描画
+      const x = Math.floor((4 - matrix[0].length) / 2);
+      const y = Math.floor((4 - matrix.length) / 2);
+      
+      tempRenderer.drawMatrix(matrix, { x, y });
+    } catch (error) {
+      // テスト環境では詳細エラーを出さない  
+      if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+        console.error('Error drawing hold piece:', error);
+      }
+    }
+  }
+
+  /**
    * ゲーム全体を描画する
    * @param {Object} gameData - ゲームデータ
    * @param {Array<Array<number>>} gameData.boardGrid - ボードのグリッド
    * @param {Object} gameData.piece - 現在のピース
    * @param {Object} gameData.nextPiece - 次のピース
+   * @param {Object} gameData.holdPiece - ホールドピース
    * @param {HTMLCanvasElement} nextPieceCanvas - 次のピース用キャンバス
+   * @param {HTMLCanvasElement} holdPieceCanvas - ホールドピース用キャンバス
    */
-  render(gameData, nextPieceCanvas = null) {
+  render(gameData, nextPieceCanvas = null, holdPieceCanvas = null) {
     try {
       this.clearCanvas();
       
@@ -151,6 +187,11 @@ export class Renderer {
       // 次のピースの描画
       if (nextPieceCanvas && gameData.nextPiece) {
         this.drawNextPiece(nextPieceCanvas, gameData.nextPiece);
+      }
+
+      // ホールドピースの描画
+      if (holdPieceCanvas && gameData.holdPiece) {
+        this.drawHoldPiece(holdPieceCanvas, gameData.holdPiece);
       }
     } catch (error) {
       console.error('Unexpected error in render function:', error);

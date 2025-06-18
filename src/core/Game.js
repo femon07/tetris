@@ -62,6 +62,10 @@ export class Game {
     this.piece = null;
     this.nextPiece = null;
     
+    // ホールド機能
+    this.heldPiece = null;
+    this.canHold = true; // 現在のターンでホールドできるかどうか
+    
     // レベルに応じたドロップ間隔（ミリ秒）
     this.levelSpeeds = [
       1000, // レベル1: 1.0秒
@@ -150,6 +154,9 @@ export class Game {
     this.score = 0;
     this.isGameOver = false;
     this.paused = false;
+    // ホールド機能をリセット
+    this.heldPiece = null;
+    this.canHold = true;
     // 自動落下間隔をリセット
     this.dropInterval = this.getDropInterval();
   }
@@ -241,6 +248,9 @@ export class Game {
   spawnPiece() {
     this.piece = this.nextPiece || this.createPiece(Math.floor(Math.random() * this.tetrominos.length));
     this.nextPiece = this.createPiece(Math.floor(Math.random() * this.tetrominos.length));
+    
+    // 新しいピースが生成されたらホールドを再び可能にする
+    this.canHold = true;
     
     // ゲームオーバー判定: ピースを一時的にY=0の位置に移動させて衝突判定を行う
     const originalY = this.piece.pos.y;
@@ -348,6 +358,58 @@ export class Game {
     );
 
     return result.success;
+  }
+
+  /**
+   * 現在のピースをホールドする
+   * @returns {boolean} ホールドが成功したかどうか
+   */
+  holdPiece() {
+    // ゲームオーバーまたは一時停止中は実行しない
+    if (this.isGameOver || this.paused) return false;
+    
+    // 現在のターンで既にホールドしている場合は実行しない
+    if (!this.canHold) return false;
+    
+    // 現在のピースが存在しない場合は実行しない
+    if (!this.piece) return false;
+    
+    // ホールドを実行したのでこのターンはもうホールドできない
+    this.canHold = false;
+    
+    if (this.heldPiece === null) {
+      // ホールドエリアが空の場合：現在のピースをホールドして次のピースを現在に
+      this.heldPiece = this.piece;
+      this.piece = this.nextPiece;
+      this.nextPiece = this.createPiece(Math.floor(Math.random() * this.tetrominos.length));
+    } else {
+      // ホールドエリアにピースがある場合：現在のピースとホールドピースを交換
+      const temp = this.piece;
+      this.piece = this.heldPiece;
+      this.heldPiece = temp;
+    }
+    
+    // 新しい現在のピースの位置をリセット
+    if (this.piece) {
+      const matrix = this.piece.matrix;
+      const x = Math.floor((this.board.cols - matrix[0].length) / 2);
+      const y = -matrix.length;
+      this.piece.pos = { x, y };
+      
+      // ゲームオーバー判定
+      const originalY = this.piece.pos.y;
+      this.piece.pos.y = 0;
+      
+      if (this.hasCollision()) {
+        this.isGameOver = true;
+        this.piece = null;
+        return false;
+      } else {
+        this.piece.pos.y = originalY;
+      }
+    }
+    
+    return true;
   }
 }
 
