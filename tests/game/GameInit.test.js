@@ -1,6 +1,15 @@
-import { initGame, resetGame, gameState } from '../../src/game.js';
+import { initGame, resetGame, gameState, draw } from '../../src/game.js';
 import { Game } from '../../src/core/Game.js';
 import { GAME_CONSTANTS } from '../../src/constants/game.js';
+
+// draw関数をモック
+jest.mock('../../src/game.js', () => {
+  const originalModule = jest.requireActual('../../src/game.js');
+  return {
+    ...originalModule,
+    draw: jest.fn()
+  };
+});
 
 // モック用のヘルパー関数
 const setupDOM = () => {
@@ -73,6 +82,9 @@ describe('ゲーム初期化処理', () => {
       expect(canvas.width).toBe(gameState.COLS * GAME_CONSTANTS.BLOCK_SIZE);
       expect(canvas.height).toBe(gameState.ROWS * GAME_CONSTANTS.BLOCK_SIZE);
       expect(console.error).not.toHaveBeenCalled();
+      
+      // 後片付け
+      document.body.removeChild(canvas);
     });
     
     test('キャンバスが存在しない場合、エラーが発生する', () => {
@@ -90,7 +102,7 @@ describe('ゲーム初期化処理', () => {
   describe('resetGame', () => {
     test('ゲーム状態が正しくリセットされる', () => {
       // 準備
-      setupDOM();
+      const { canvas } = setupDOM();
       initGame();
       
       // テスト用にゲーム状態を変更
@@ -109,12 +121,25 @@ describe('ゲーム初期化処理', () => {
         mockGame.isGameOver = false;
         mockGame.piece = null;
         mockGame.nextPiece = null;
-        mockGame.board = { grid: Array(20).fill(0).map(() => Array(10).fill(0)) };
+        mockGame.board = { 
+          grid: Array(20).fill(0).map(() => Array(10).fill(0)),
+          cols: 10,
+          rows: 20
+        };
       });
       
       // グローバルなtetrisGameをモックに差し替え
       const originalTetrisGame = global.tetrisGame;
       global.tetrisGame = mockGame;
+      
+      // モックのコンテキストを作成
+      const mockCtx = {
+        fillStyle: '',
+        fillRect: jest.fn()
+      };
+      
+      // 元のdraw関数を保存
+      const originalDraw = draw;
       
       try {
         // 実行
@@ -137,9 +162,14 @@ describe('ゲーム初期化処理', () => {
         expect(document.getElementById('score').textContent).toBe('0');
         expect(document.getElementById('lines').textContent).toBe('0');
         expect(document.getElementById('level').textContent).toBe('1');
+        
+        // draw関数が呼ばれたことを確認
+        expect(draw).toHaveBeenCalled();
       } finally {
         // グローバルなtetrisGameを元に戻す
         global.tetrisGame = originalTetrisGame;
+        // 後片付け
+        document.body.removeChild(canvas);
       }
     });
   });

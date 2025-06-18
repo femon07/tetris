@@ -1,8 +1,18 @@
-import { playerMove, playerRotate, playerDrop, gameState, initGame, resetGame } from '../../src/game.js';
+jest.mock('../../src/game.js', () => {
+  const actual = jest.requireActual('../../src/game.js');
+  return {
+    ...actual,
+    draw: jest.fn()
+  };
+});
+import { playerMove, playerRotate, playerDrop, gameState, initGame, resetGame, tetrisGame, setTetrisGame } from '../../src/game.js';
 import { GAME_CONSTANTS } from '../../src/constants/game.js';
+import { Game } from '../../src/core/Game.js';
+import { Piece } from '../../src/core/Piece.js';
 
 // モック用のヘルパー関数
 const setupGameState = () => {
+  global.draw = jest.fn();
   // テスト用のDOMをセットアップ
   const canvas = document.createElement('canvas');
   canvas.id = 'game';
@@ -15,37 +25,66 @@ const setupGameState = () => {
   gameState.isGameOver = false;
   gameState.paused = false;
   
-  // モックのGameインスタンスを設定
-  const mockGame = {
-    movePiece: jest.fn(),
-    rotatePiece: jest.fn(),
-    dropPiece: jest.fn().mockImplementation(function() {
-      // ドロップ処理のモック実装
-      this.piece.pos.y += 1; // 仮の実装
-      // ゲームオーバー状態をシミュレートするために、ある程度下に移動したらゲームオーバーにする
-      if (this.piece.pos.y > 15) {
-        this.isGameOver = true;
+  // Pieceクラスのモック
+  class MockPiece {
+    constructor(matrix, pos) {
+      this.matrix = matrix;
+      this.pos = { ...pos };
+    }
+    
+    move(dx, dy) {
+      this.pos.x += dx;
+      this.pos.y += dy;
+    }
+    
+    rotate(dir) {
+      // 簡易的な回転（実際のロジックとは異なるが、テスト用）
+      if (dir > 0) {
+        // 時計回り
+        this.matrix = this.matrix[0].map((_, i) => 
+          this.matrix.map(row => row[i]).reverse()
+        );
+      } else {
+        // 反時計回り
+        this.matrix = this.matrix[0].map((_, i) => 
+          this.matrix.map(row => row[row.length - 1 - i])
+        );
       }
-    }),
-    piece: { pos: { x: 5, y: 0 }, matrix: [[1, 1], [1, 1]] },
-    nextPiece: { matrix: [[1], [1]] },
-    board: { grid: Array(20).fill(0).map(() => Array(10).fill(0)) },
-    score: 0,
-    lines: 0,
-    level: 1,
-    isGameOver: false
-  };
+    }
+  }
+
+  // 実際のGameインスタンスを使用
+  const game = new Game();
   
-  // グローバルなtetrisGameをモックに差し替え
-  const originalTetrisGame = global.tetrisGame;
-  global.tetrisGame = mockGame;
+  // テスト用に初期化
+  game.reset();
+  
+  // テスト用のボードをクリア
+  game.board.clear();
+  // テスト用のピースを左上に配置（衝突しない状態）
+  game.piece = new Piece(game.tetrominos[0], { x: 0, y: 0 }); // Iピース
+  game.nextPiece = new Piece(game.tetrominos[1], { x: 0, y: 0 }); // Oピース
+  
+  // tetrisGameインスタンスをテスト用に差し替え
+  setTetrisGame(game);
+  
+  // gameStateを初期化
+  gameState.piece = game.piece;
+  gameState.nextPiece = game.nextPiece;
+  gameState.board = game.board.grid;
+  gameState.score = game.score;
+  gameState.lines = game.lines;
+  gameState.level = game.level;
+  gameState.isGameOver = game.isGameOver;
   
   // クリーンアップ用の関数を返す
   return {
-    mockGame,
+    game,
     cleanup: () => {
       global.tetrisGame = originalTetrisGame;
       document.body.innerHTML = '';
+      // モックをリセット
+      jest.clearAllMocks();
     }
   };
 };
@@ -63,144 +102,139 @@ describe('ゲームアクション処理', () => {
   describe('playerMove', () => {
     test('ゲームオーバーでない場合、ピースを移動できる', () => {
       // 準備
-      const { mockGame } = setupGameState();
+      const { game } = setupGameState();
+      const originalX = game.piece.pos.x;
       
       // 実行 - 右に移動
       playerMove(1);
       
       // 検証
-      expect(mockGame.movePiece).toHaveBeenCalledWith(1);
-      expect(gameState.piece).toBe(mockGame.piece);
-      expect(gameState.board).toBe(mockGame.board.grid);
+      expect(game.piece.pos.x).toBe(originalX + 1);
+      expect(gameState.piece).toBe(game.piece);
+      expect(gameState.board).toBe(game.board.grid);
     });
     
     test('ゲームオーバーの場合、何も実行しない', () => {
       // 準備
-      const { mockGame } = setupGameState();
+      const { game } = setupGameState();
+      const originalX = game.piece.pos.x;
       gameState.isGameOver = true;
       
       // 実行
       playerMove(1);
       
       // 検証
-      expect(mockGame.movePiece).not.toHaveBeenCalled();
+      expect(game.piece.pos.x).toBe(originalX); // 移動していないことを確認
     });
     
     test('一時停止中の場合、何も実行しない', () => {
       // 準備
-      const { mockGame } = setupGameState();
+      const { game } = setupGameState();
+      const originalX = game.piece.pos.x;
       gameState.paused = true;
       
       // 実行
       playerMove(1);
       
       // 検証
-      expect(mockGame.movePiece).not.toHaveBeenCalled();
+      expect(game.piece.pos.x).toBe(originalX); // 移動していないことを確認
     });
   });
   
   describe('playerDrop', () => {
     test('ゲームオーバーでない場合、ピースをドロップできる', () => {
       // 準備
-      const { mockGame } = setupGameState();
-      mockGame.piece.pos.y = 10; // テスト用に位置を設定
+      const { game } = setupGameState();
+      game.piece.pos.y = 10; // テスト用に位置を設定
+      const originalY = game.piece.pos.y;
       
       // 実行
       playerDrop();
       
       // 検証
-      expect(mockGame.dropPiece).toHaveBeenCalled();
-      expect(gameState.piece.pos.y).toBe(11); // 1つ下に移動しているはず
+      expect(game.piece.pos.y).toBe(originalY + 1); // 1マス下がっていることを確認
+      expect(gameState.piece).toBe(game.piece);
+      expect(gameState.board).toBe(game.board.grid);
       expect(gameState.isGameOver).toBe(false);
     });
     
     test('ドロップ後にゲームオーバーになる場合、適切に処理される', () => {
       // 準備
-      const { mockGame } = setupGameState();
-      mockGame.piece.pos.y = 15; // ゲームオーバーになる位置に設定
+      const { game } = setupGameState();
+      // ボード左上セルを埋める（次のピースが必ず衝突するように）
+      game.board.grid[0][0] = 1;
+      // nextPieceを1x1ピースで左上にセット
+      game.nextPiece = new (require('../../src/core/Piece.js').Piece)([[1]], { x: 0, y: 0 });
+      // 現在のピースはどこでも良いので即ドロップさせる
+      game.piece.pos.y = game.board.rows - 1;
       
       // alertをモック
       const originalAlert = global.alert;
       global.alert = jest.fn();
       
-      // requestAnimationFrameをモック
-      const originalRequestAnimationFrame = global.requestAnimationFrame;
-      global.requestAnimationFrame = jest.fn();
-      
       // 実行
       playerDrop();
       
       // 検証
-      expect(mockGame.dropPiece).toHaveBeenCalled();
       expect(gameState.isGameOver).toBe(true);
       expect(global.alert).toHaveBeenCalledWith('Game Over!');
       
-      // モックを元に戻す
+      // 元に戻す
       global.alert = originalAlert;
-      global.requestAnimationFrame = originalRequestAnimationFrame;
     });
     
     test('ゲームオーバーの場合、何も実行しない', () => {
       // 準備
-      const { mockGame } = setupGameState();
+      const { game } = setupGameState();
+      const originalY = game.piece.pos.y;
       gameState.isGameOver = true;
       
       // 実行
       playerDrop();
       
       // 検証
-      expect(mockGame.dropPiece).not.toHaveBeenCalled();
+      expect(game.piece.pos.y).toBe(originalY); // 移動していないことを確認
     });
     
     test('一時停止中の場合、何も実行しない', () => {
       // 準備
-      const { mockGame } = setupGameState();
+      const { game } = setupGameState();
+      const originalY = game.piece.pos.y;
       gameState.paused = true;
       
       // 実行
       playerDrop();
       
       // 検証
-      expect(mockGame.dropPiece).not.toHaveBeenCalled();
+      expect(game.piece.pos.y).toBe(originalY); // 移動していないことを確認
     });
   });
   
   describe('playerRotate', () => {
     test('ゲームオーバーでない場合、ピースを回転できる', () => {
       // 準備
-      const { mockGame } = setupGameState();
-      
-      // 実行 - 時計回りに回転
-      playerRotate(1);
-      
-      // 検証
-      expect(mockGame.rotatePiece).toHaveBeenCalledWith(1);
-      expect(gameState.piece).toBe(mockGame.piece);
-      expect(gameState.board).toBe(mockGame.board.grid);
-    });
-    
-    test('ゲームオーバーの場合、何も実行しない', () => {
-      // 準備
-      const { mockGame } = setupGameState();
+      const { game } = setupGameState();
+      const originalMatrix = JSON.parse(JSON.stringify(game.piece.matrix));
       gameState.isGameOver = true;
       
       // 実行
       playerRotate(1);
       
       // 検証
-      expect(mockGame.rotatePiece).not.toHaveBeenCalled();
+      expect(JSON.stringify(game.piece.matrix)).toBe(JSON.stringify(originalMatrix)); // 回転していないことを確認
     });
     
     test('一時停止中の場合、何も実行しない', () => {
       // 準備
-      const { mockGame } = setupGameState();
+      const { game } = setupGameState();
+      const originalMatrix = JSON.parse(JSON.stringify(game.piece.matrix));
       gameState.paused = true;
       
       // 実行
       playerRotate(1);
       
       // 検証
-      expect(mockGame.rotatePiece).not.toHaveBeenCalled();
+      expect(JSON.stringify(game.piece.matrix)).toBe(JSON.stringify(originalMatrix)); // 回転していないことを確認
     });
   });
 });

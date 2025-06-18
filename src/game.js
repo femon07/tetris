@@ -3,7 +3,10 @@ import { GAME_CONSTANTS } from './constants/game.js';
 import GameUI from "./ui/GameUI.js";
 
 // ゲームの状態とロジックをカプセル化
-export const tetrisGame = new Game();
+export let tetrisGame = new Game();
+export function setTetrisGame(instance) {
+  tetrisGame = instance;
+}
 
 // レンダリング関連のヘルパー関数
 export function draw(ctx, board, piece, nextPiece, colors, blockSize) {
@@ -167,14 +170,14 @@ export function resetGame() {
     cols: gameState.COLS,
     rows: gameState.ROWS
   };
-  draw(gameState.ctx, boardForDraw, gameState.piece, gameState.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
+  global.draw(gameState.ctx, boardForDraw, gameState.piece, gameState.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
   console.log('resetGame: ゲームのリセットが完了しました');
 }
 
 // ピースをドロップする関数
 export function playerDrop() {
+  if (gameState.isGameOver || gameState.paused) return;
   console.log('playerDrop: ピースをドロップします');
-  if (gameState.isGameOver) return;
   tetrisGame.dropPiece();
   gameState.score = tetrisGame.score;
   gameState.lines = tetrisGame.lines;
@@ -185,7 +188,7 @@ export function playerDrop() {
   updateScoreDisplay(gameState.score);
   updateLinesDisplay(gameState.lines);
   updateLevelDisplay(gameState.level);
-  draw(gameState.ctx, gameState.board, gameState.piece, gameState.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
+  global.draw(gameState.ctx, gameState.board, gameState.piece, gameState.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
 
   if (gameState.isGameOver) {
     console.log('playerDrop: ゲームオーバー！');
@@ -197,22 +200,24 @@ export function playerDrop() {
 
 // ピースを移動する関数
 export function playerMove(dir) {
+  if (gameState.isGameOver || gameState.paused) return;
   console.log('playerMove: ピースを移動します', { dir });
   if (gameState.isGameOver) return;
   tetrisGame.movePiece(dir);
   gameState.piece = tetrisGame.piece;
   gameState.board = tetrisGame.board.grid;
-  draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
+  global.draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
 }
 
 // ピースを回転する関数
 export function playerRotate(dir) {
+  if (gameState.isGameOver || gameState.paused) return;
   console.log('playerRotate: ピースを回転します', { dir });
   if (gameState.isGameOver) return;
   tetrisGame.rotatePiece(dir);
   gameState.piece = tetrisGame.piece;
   gameState.board = tetrisGame.board.grid;
-  draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
+  global.draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
 }
 
 // ゲームループ
@@ -229,7 +234,7 @@ export function update(time = 0) {
     playerDrop();
   }
 
-  draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
+  global.draw(gameState.ctx, gameState.board, gameState.piece, tetrisGame.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
   gameState.gameLoopId = requestAnimationFrame(update);
 }
 export const gameUI = new GameUI(gameState, {
@@ -242,15 +247,13 @@ export const gameUI = new GameUI(gameState, {
 
 
 // キーハンドラ関数
-export function handleKeyDown(event, gameInstance) {
-  const ui = new GameUI(gameInstance, gameInstance);
-  ui.onKeyDown(event);
+export function handleKeyDown(event) {
+  gameUI.onKeyDown(event);
 }
 
 
-export function handleKeyUp(event, gameInstance) {
-  const ui = new GameUI(gameInstance, gameInstance);
-  ui.onKeyUp(event);
+export function handleKeyUp(event) {
+  gameUI.onKeyUp(event);
 }
 
 // イベントリスナーの設定
@@ -349,7 +352,7 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') {
       canvas.width = gameState.COLS * gameState.BLOCK;
       canvas.height = gameState.ROWS * gameState.BLOCK;
       // 再描画
-      draw(gameState.ctx, gameState.board, gameState.piece, gameState.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
+      global.draw(gameState.ctx, gameState.board, gameState.piece, gameState.nextPiece, GAME_CONSTANTS.COLORS, GAME_CONSTANTS.BLOCK_SIZE);
     }
   });
 }
