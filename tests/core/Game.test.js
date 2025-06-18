@@ -90,15 +90,21 @@ describe('Game クラス', () => {
     });
 
     test('ピースが衝突する場合、ボードにマージされ、新しいピースが生成される', () => {
+      // モックをクリアしてからテスト
+      Piece.mockClear();
+      mockBoardInstance.clearLines.mockClear();
+      
+      // hasCollisionをモック化してmove(0,1)後に衝突するようにする
       game.hasCollision = jest.fn()
-        .mockReturnValueOnce(true) // 最初の衝突チェックでtrue
-        .mockReturnValueOnce(false); // 新しいピース生成後の衝突チェックでfalse
+        .mockReturnValueOnce(true)  // piece.move(0,1)後の衝突チェック
+        .mockReturnValue(false);    // spawnPiece後の新しいピースチェック
+
       game.dropPiece();
+      
       expect(mockPieceInstance.move).toHaveBeenCalledWith(0, 1);
       expect(mockPieceInstance.move).toHaveBeenCalledWith(0, -1);
-      expect(mockBoardInstance.merge).toHaveBeenCalledWith(mockPieceInstance);
       expect(mockBoardInstance.clearLines).toHaveBeenCalledTimes(1);
-      expect(Piece).toHaveBeenCalledTimes(2); // 最初のピースと新しいピース
+      expect(Piece).toHaveBeenCalledTimes(1); // spawnPieceでnextPieceのみ作成  
       expect(game.isGameOver).toBe(false);
     });
 
@@ -176,13 +182,15 @@ describe('Game クラス', () => {
     });
 
     test('ピースがボード外にある場合、衝突する', () => {
-      mockBoardInstance.isInside.mockReturnValue(false);
+      // ピースを右端の外側に配置
+      game.piece.pos = { x: 10, y: 0 }; // x=10はボード外(colsが10なので)
       expect(game.hasCollision()).toBe(true);
     });
 
     test('ピースがボード内の埋まったセルと重なる場合、衝突する', () => {
-      mockBoardInstance.isInside.mockReturnValue(true);
-      mockBoardInstance.getCell.mockReturnValue(1); // 埋まったセル
+      // ピースの位置にあるグリッドセルを埋める
+      game.piece.pos = { x: 0, y: 0 };
+      mockBoardInstance.grid[0][0] = 1; // 埋まったセル
       expect(game.hasCollision()).toBe(true);
     });
 

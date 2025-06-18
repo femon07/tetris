@@ -140,12 +140,14 @@ export const gameUI = new GameUI(gameState, {
   movePiece: playerMove,
   dropPiece: playerDrop,
   rotatePiece: playerRotate,
-  resetGame
+  resetGame,
+  update
 });
 
 export function resetGame() {
   tetrisGame.reset();
   updateGameState();
+  updateUI(); // UI更新を追加
   gameState.paused = false;
   if (gameState.gameLoopId) {
     cancelAnimationFrame(gameState.gameLoopId);
@@ -166,23 +168,39 @@ function setupEventListeners() {
   });
 }
 
+// テスト用のsetupEventListeners関数をエクスポート
+export { setupEventListeners };
+
 export function init() {
   try {
     const canvas = document.getElementById('game');
+    if (!canvas) {
+      console.error('Canvas要素が見つかりません');
+      return null;
+    }
+    
     gameState.ctx = canvas.getContext('2d');
+    gameState.canvas = canvas; // テストで期待されているプロパティ
     canvas.width = gameState.board.cols * GAME_CONSTANTS.BLOCK_SIZE;
     canvas.height = gameState.board.rows * GAME_CONSTANTS.BLOCK_SIZE;
 
     setupEventListeners();
     resetGame();
     console.log('ゲームの初期化が完了しました。');
+    return canvas;
   } catch (error) {
     console.error('ゲームの初期化中にエラーが発生しました:', error);
+    return null;
   }
 }
 
 // --- エクスポートとブラウザ実行 ---
-const exports = { init, playerMove, playerRotate, playerDrop, gameUI, gameState, resetGame, update };
+export const handleKeyDown = gameUI.onKeyDown.bind(gameUI);
+export const handleKeyUp = gameUI.onKeyUp.bind(gameUI);
+export const initGame = init; // テスト互換性のためのエイリアス
+export { draw }; // draw関数をエクスポート
+
+const exports = { init, initGame, playerMove, playerRotate, playerDrop, gameUI, gameState, resetGame, update, handleKeyDown, handleKeyUp, setupEventListeners, draw, tetrisGame };
 export default exports;
 
 if (typeof window !== 'undefined') {

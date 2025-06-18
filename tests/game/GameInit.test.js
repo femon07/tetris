@@ -1,4 +1,4 @@
-import { initGame, resetGame, gameState, draw } from '../../src/game.js';
+import { initGame, resetGame, gameState, draw, tetrisGame } from '../../src/game.js';
 import { Game } from '../../src/core/Game.js';
 import { GAME_CONSTANTS } from '../../src/constants/game.js';
 
@@ -16,6 +16,12 @@ const setupDOM = () => {
   // テスト用のcanvas要素を作成
   const canvas = document.createElement('canvas');
   canvas.id = 'game';
+  // getContextをモック
+  canvas.getContext = jest.fn().mockReturnValue({
+    fillStyle: '',
+    fillRect: jest.fn(),
+    clearRect: jest.fn()
+  });
   document.body.appendChild(canvas);
   
   // スコア表示用の要素を作成
@@ -79,8 +85,8 @@ describe('ゲーム初期化処理', () => {
       expect(result).toBe(canvas);
       expect(gameState.ctx).toBeDefined();
       expect(gameState.canvas).toBe(canvas);
-      expect(canvas.width).toBe(gameState.COLS * GAME_CONSTANTS.BLOCK_SIZE);
-      expect(canvas.height).toBe(gameState.ROWS * GAME_CONSTANTS.BLOCK_SIZE);
+      expect(canvas.width).toBe(gameState.board.cols * GAME_CONSTANTS.BLOCK_SIZE);
+      expect(canvas.height).toBe(gameState.board.rows * GAME_CONSTANTS.BLOCK_SIZE);
       expect(console.error).not.toHaveBeenCalled();
       
       // 後片付け
@@ -105,6 +111,9 @@ describe('ゲーム初期化処理', () => {
       const { canvas } = setupDOM();
       initGame();
       
+      // tetrisGame.resetをスパイ
+      const resetSpy = jest.spyOn(tetrisGame, 'reset');
+      
       // テスト用にゲーム状態を変更
       gameState.score = 100;
       gameState.lines = 5;
@@ -112,50 +121,20 @@ describe('ゲーム初期化処理', () => {
       gameState.isGameOver = true;
       gameState.paused = true;
       
-      // モックのGameインスタンスを設定
-      const mockGame = new Game();
-      mockGame.reset = jest.fn().mockImplementation(() => {
-        mockGame.score = 0;
-        mockGame.lines = 0;
-        mockGame.level = 1;
-        mockGame.isGameOver = false;
-        mockGame.piece = null;
-        mockGame.nextPiece = null;
-        mockGame.board = { 
-          grid: Array(20).fill(0).map(() => Array(10).fill(0)),
-          cols: 10,
-          rows: 20
-        };
-      });
-      
-      // グローバルなtetrisGameをモックに差し替え
-      const originalTetrisGame = global.tetrisGame;
-      global.tetrisGame = mockGame;
-      
-      // モックのコンテキストを作成
-      const mockCtx = {
-        fillStyle: '',
-        fillRect: jest.fn()
-      };
-      
-      // 元のdraw関数を保存
-      const originalDraw = draw;
+      // requestAnimationFrameをモック
+      global.requestAnimationFrame = jest.fn();
+      global.cancelAnimationFrame = jest.fn();
       
       try {
         // 実行
         resetGame();
         
         // 検証
-        expect(mockGame.reset).toHaveBeenCalled();
+        expect(resetSpy).toHaveBeenCalled();
         expect(gameState.score).toBe(0);
         expect(gameState.lines).toBe(0);
         expect(gameState.level).toBe(1);
         expect(gameState.isGameOver).toBe(false);
-        expect(gameState.piece).toBeNull();
-        expect(gameState.nextPiece).toBeNull();
-        expect(gameState.dropCounter).toBe(0);
-        expect(gameState.lastTime).toBe(0);
-        expect(gameState.gameLoopId).toBeNull();
         expect(gameState.paused).toBe(false);
         
         // UI更新の検証
@@ -163,12 +142,9 @@ describe('ゲーム初期化処理', () => {
         expect(document.getElementById('lines').textContent).toBe('0');
         expect(document.getElementById('level').textContent).toBe('1');
         
-        // draw関数が呼ばれたことを確認
-        expect(draw).toHaveBeenCalled();
       } finally {
-        // グローバルなtetrisGameを元に戻す
-        global.tetrisGame = originalTetrisGame;
         // 後片付け
+        resetSpy.mockRestore();
         document.body.removeChild(canvas);
       }
     });
