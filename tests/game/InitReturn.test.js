@@ -1,19 +1,50 @@
 import { setupGameDOM } from '../helpers/testUtils.js';
-import { init } from '../../src/game.js';
+import { init, draw } from '../../src/game.js';
+
+// draw関数をモック化
+jest.mock('../../src/game.js', () => {
+  const originalModule = jest.requireActual('../../src/game.js');
+  return {
+    ...originalModule,
+    draw: jest.fn(), // draw関数をモック化
+  };
+});
 
 describe('init関数の返り値', () => {
   beforeEach(() => {
-    global.mockCtx = { fillRect: jest.fn(), clearRect: jest.fn() };
+    // モックのリセット
+    jest.clearAllMocks();
+    
+    // キャンバスとコンテキストのモック設定
+    global.mockCtx = { 
+      fillRect: jest.fn(), 
+      clearRect: jest.fn(),
+      fillStyle: '',
+      fillText: jest.fn(),
+      font: ''
+    };
+    
+    // DOMのセットアップ
     setupGameDOM();
+    
+    // キャンバスのモック設定
     const canvas = document.getElementById("game");
     canvas.getContext = jest.fn(() => global.mockCtx);
+    
+    // イベントリスナーのモック設定
     document.addEventListener = jest.fn();
     document.removeEventListener = jest.fn();
+    
+    // global.drawのモックをリセット
+    jest.spyOn(global, 'draw').mockImplementation(jest.fn());
   });
 
 
   afterEach(() => {
     jest.restoreAllMocks();
+    // グローバルな状態をクリア
+    delete global.mockCtx;
+    delete global.draw;
   });
 
   test('返り値のキー一覧を確認する', () => {
