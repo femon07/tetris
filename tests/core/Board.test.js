@@ -1,5 +1,5 @@
-import { Board } from '../../src/core/Board';
-import { Piece } from '../../src/core/Piece';
+import { Board } from '../../src/core/Board.js';
+import { Piece } from '../../src/core/Piece.js';
 
 describe('Board クラス', () => {
   let board;
@@ -128,7 +128,6 @@ describe('Board クラス', () => {
       expect(board.grid[1][0]).toBe(2);
       // 空の行が2行追加されている
       expect(board.grid[0].every(cell => cell === 0)).toBe(true);
-      expect(board.grid[1][0]).toBe(2); // マーカー
       // 2行目（元々空）は削除されずに残る
       expect(board.grid[2].every(cell => cell === 0)).toBe(true);
     });

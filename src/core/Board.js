@@ -40,16 +40,23 @@ export class Board {
 
   clearLines() {
     let cleared = 0;
-    this.grid = this.grid.filter(row => {
+    const newGrid = [];
+    
+    for (let y = 0; y < this.grid.length; y++) {
+      const row = this.grid[y];
       if (row.every(cell => cell !== 0)) {
         cleared++;
-        return false;
+      } else {
+        newGrid.push(row);
       }
-      return true;
-    });
-    while (this.grid.length < this.rows) {
-      this.grid.unshift(Array(this.cols).fill(0));
     }
+    
+    // 削除された行の分だけ空の行を上に追加
+    while (newGrid.length < this.rows) {
+      newGrid.unshift(Array(this.cols).fill(0));
+    }
+    
+    this.grid = newGrid;
     return cleared;
   }
 }

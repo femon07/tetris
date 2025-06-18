@@ -166,7 +166,15 @@ export class Game {
     if (this.hasCollision()) {
       this.piece.move(0, -1);
       this.mergePiece();
-      this.clearLines();
+      
+      // ボードのclearLinesメソッドを使用
+      const linesCleared = this.board.clearLines();
+      if (linesCleared > 0) {
+        this.lines += linesCleared;
+        this.score += this.calculateScore(linesCleared);
+        this.checkLevelUp();
+      }
+      
       this.spawnPiece();
       return false;
     }
@@ -196,45 +204,23 @@ export class Game {
     }
   }
   
-  /**
-   * 揃ったラインを消去する
-   * @returns {number} 消去したライン数
-   */
-  clearLines() {
-    let linesCleared = 0;
-    
-    for (let y = this.board.rows - 1; y >= 0; y--) {
-      // ラインがすべて埋まっているかチェック
-      const isLineComplete = this.board.grid[y].every(cell => cell !== 0);
-      
-      if (isLineComplete) {
-        // ラインを消去して上にずらす
-        this.board.grid.splice(y, 1);
-        this.board.grid.unshift(Array(this.board.cols).fill(0));
-        linesCleared++;
-        this.lines++;
-        
-        // スコアを更新
-        this.updateScore(linesCleared);
-        
-        // レベルアップをチェック
-        this.checkLevelUp();
-        
-        // 同じ行を再度チェックする（1つ下にずれた行をチェックするため）
-        y++;
-      }
-    }
-    
-    return linesCleared;
-  }
   
+  /**
+   * スコアを計算する
+   * @param {number} linesCleared - 消去したライン数
+   * @returns {number} 計算されたスコア
+   */
+  calculateScore(linesCleared) {
+    const points = [0, 40, 100, 300, 1200]; // 0-4ライン消したときの基礎得点
+    return points[Math.min(linesCleared, 4)] * this.level;
+  }
+
   /**
    * スコアを更新する
    * @param {number} linesCleared - 消去したライン数
    */
   updateScore(linesCleared) {
-    const points = [0, 100, 300, 500, 800]; // 1-4ライン消したときの得点
-    this.score += points[Math.min(linesCleared, 4)] * this.level;
+    this.score += this.calculateScore(linesCleared);
   }
   
   /**

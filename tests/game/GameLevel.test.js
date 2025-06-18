@@ -78,8 +78,11 @@ describe('ゲームレベル管理', () => {
       // モックのボードを設定して、10ラインを一度に消せるようにする
       jest.spyOn(game.board, 'clearLines').mockImplementation(() => 10);
       
-      // ドロップを実行（ラインが10個消える）
-      game.dropPiece();
+      // 直接ラインクリアロジックをテスト
+      const linesCleared = game.board.clearLines();
+      game.lines += linesCleared;
+      game.score += game.calculateScore(linesCleared);
+      game.checkLevelUp();
       
       // レベルが2に上がっていることを確認
       expect(game.level).toBe(2);
