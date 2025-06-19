@@ -27,21 +27,22 @@ export class WebGLDrawing {
     const gridColor = 0xcccccc;
     const material = new THREE.LineBasicMaterial({ color: gridColor });
 
-    // 垂直線
+    // 垂直線（一番左の線を追加 + ブロック中央に配置）
     for (let x = 0; x <= 10; x++) {
       const points = [];
-      points.push(new THREE.Vector3(x, 0, 0));
-      points.push(new THREE.Vector3(x, 20, 0));
+      const lineX = x - 0.5;
+      points.push(new THREE.Vector3(lineX, 0, 0));
+      points.push(new THREE.Vector3(lineX, 20, 0));
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
       const line = new THREE.LineSegments(geometry, material);
       this.gridGroup.add(line);
     }
 
-    // 水平線
+    // 水平線（左に0.5ブロック移動）
     for (let y = 0; y <= 20; y++) {
       const points = [];
-      points.push(new THREE.Vector3(0, y, 0));
-      points.push(new THREE.Vector3(10, y, 0));
+      points.push(new THREE.Vector3(-0.5, y, 0));
+      points.push(new THREE.Vector3(9.5, y, 0));
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
       const line = new THREE.LineSegments(geometry, material);
       this.gridGroup.add(line);

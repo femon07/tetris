@@ -50,15 +50,21 @@ export class WebGLCamera {
     }
     
     const aspect = displayWidth / displayHeight;
-    
-    // 横視野角を計算
     const fovRad = THREE.MathUtils.degToRad(this.fov);
     const fovHorizontalRad = 2 * Math.atan(Math.tan(fovRad / 2) * aspect);
+    
     const boardPixelWidth = this.boardWidth * this.blockSize;
     const boardPixelHeight = this.boardHeight * this.blockSize;
 
-    // 横幅が必ず収まるZ距離
-    const zDistance = (boardPixelWidth / 2) / Math.tan(fovHorizontalRad / 2);
+    // マージン率を追加（15%の余白で確実にボード全体を表示）
+    const marginRatio = 0.15;
+    const boardWidthWithMargin = boardPixelWidth * (1 + marginRatio);
+    const boardHeightWithMargin = boardPixelHeight * (1 + marginRatio);
+
+    // 横幅・縦幅の両方を考慮したZ距離計算
+    const zDistanceForWidth = (boardWidthWithMargin / 2) / Math.tan(fovHorizontalRad / 2);
+    const zDistanceForHeight = (boardHeightWithMargin / 2) / Math.tan(fovRad / 2);
+    const zDistance = Math.max(zDistanceForWidth, zDistanceForHeight);
 
     // カメラが存在しない場合は作成
     if (!this.camera) {
@@ -68,18 +74,27 @@ export class WebGLCamera {
       this.camera.aspect = aspect;
     }
 
-    // カメラ位置（X:ボード中央, Y:ボード中央+2, Z:自動計算）
+    // カメラ位置の最適化（左右と上下のバランス調整）
     this.camera.position.set(
-      boardPixelWidth / 2,
-      boardPixelHeight / 2 + 2,
+      boardPixelWidth / 2 - 0.5,  // X: ボード中央より左に0.5ブロック（右側の余白を狭く）
+      boardPixelHeight * 0.50,    // Y: ちょうど良いバランス
       zDistance
     );
+    
+    // 注視点も同様に調整
     this.camera.lookAt(
-      boardPixelWidth / 2,
-      boardPixelHeight / 2,
+      boardPixelWidth / 2 - 0.5,
+      boardPixelHeight * 0.50,
       0
     );
+    
     this.camera.updateProjectionMatrix();
+    
+    console.log('[WebGLCamera] カメラ設定完了:', {
+      position: this.camera.position,
+      zDistance: zDistance.toFixed(2),
+      marginRatio
+    });
   }
 
   /**
