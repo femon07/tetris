@@ -104,55 +104,29 @@ export class WebGLDrawing {
   }
 
   /**
-   * 次のピースを描画
+   * 次のピースを描画（3Dボードには表示しない）
    */
   drawNextPiece(nextPiece, nextPieceGroup) {
     if (!nextPieceGroup) return;
     
+    // 次のピースは2Dキャンバスのみに表示するため、3Dグループからクリア
     this.blocks.clearGroup(nextPieceGroup);
-
-    if (nextPiece && nextPiece.matrix) {
-      const offset = { x: 12, y: 18 }; // ボードの右側に表示
-      nextPiece.matrix.forEach((row, y) => {
-        row.forEach((value, x) => {
-          if (value !== 0) {
-            this.blocks.createBlock(
-              offset.x + x,
-              offset.y - y,
-              0,
-              value,
-              nextPieceGroup
-            );
-          }
-        });
-      });
-    }
+    
+    // 3Dボード上には何も描画しない（2Dキャンバスで処理）
+    // nextPiece パラメータは互換性のため保持
   }
 
   /**
-   * ホールドピースを描画
+   * ホールドピースを描画（3Dボードには表示しない）
    */
   drawHoldPiece(holdPiece, holdPieceGroup) {
     if (!holdPieceGroup) return;
     
+    // ホールドピースは2Dキャンバスのみに表示するため、3Dグループからクリア
     this.blocks.clearGroup(holdPieceGroup);
-
-    if (holdPiece && holdPiece.matrix) {
-      const offset = { x: -3, y: 18 }; // ボードの左側に表示
-      holdPiece.matrix.forEach((row, y) => {
-        row.forEach((value, x) => {
-          if (value !== 0) {
-            this.blocks.createBlock(
-              offset.x + x,
-              offset.y - y,
-              0,
-              value,
-              holdPieceGroup
-            );
-          }
-        });
-      });
-    }
+    
+    // 3Dボード上には何も描画しない（2Dキャンバスで処理）
+    // holdPiece パラメータは互換性のため保持
   }
 
   /**
