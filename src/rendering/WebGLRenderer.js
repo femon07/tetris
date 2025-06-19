@@ -24,6 +24,11 @@ export class WebGLRenderer extends BaseRenderer {
     this.nextPieceGroup = null;
     this.holdPieceGroup = null;
     
+    // パーティクルシステム
+    this.particleSystem = null;
+    this.particleGroups = new Map(); // パーティクルグループの管理
+    this.activeParticles = []; // アクティブなパーティクルの配列
+    
     // パフォーマンス監視
     this.frameCount = 0;
     this.lastFPSUpdate = 0;
@@ -45,6 +50,7 @@ export class WebGLRenderer extends BaseRenderer {
       this.initializeRenderer();
       this.initializeLights();
       this.initializeBlockGeometry();
+      this.initializeParticleSystem();
       
       // レンダリングループ開始
       this.startRenderLoop();
@@ -177,31 +183,44 @@ export class WebGLRenderer extends BaseRenderer {
    * ライティングの初期化
    */
   initializeLights() {
-    // 環境光
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.7); // 強度を上げる
+    // 環境光（基本照明）
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
     this.scene.add(ambientLight);
     this.lights.push(ambientLight);
     
-    // 方向光（太陽光）
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0); // 強度を上げる
-    directionalLight.position.set(10, 20, 15); // 位置を調整
+    // メイン方向光（太陽光）
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(15, 30, 15);
     directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
+    directionalLight.shadow.mapSize.width = 4096;
+    directionalLight.shadow.mapSize.height = 4096;
     directionalLight.shadow.camera.near = 0.5;
-    directionalLight.shadow.camera.far = 50;
-    directionalLight.shadow.camera.left = -10;
-    directionalLight.shadow.camera.right = 10;
-    directionalLight.shadow.camera.top = 20;
-    directionalLight.shadow.camera.bottom = -5;
+    directionalLight.shadow.camera.far = 100;
+    directionalLight.shadow.camera.left = -20;
+    directionalLight.shadow.camera.right = 20;
+    directionalLight.shadow.camera.top = 30;
+    directionalLight.shadow.camera.bottom = -10;
+    directionalLight.shadow.bias = -0.0001;
     this.scene.add(directionalLight);
     this.lights.push(directionalLight);
     
-    // ポイントライト（アクセント）
-    const pointLight = new THREE.PointLight(0x00ff88, 0.5, 50); // 強度を上げる
-    pointLight.position.set(5, 25, 10);
-    this.scene.add(pointLight);
-    this.lights.push(pointLight);
+    // 補助方向光（フィルライト）
+    const fillLight = new THREE.DirectionalLight(0x8cc8ff, 0.3);
+    fillLight.position.set(-10, 15, 10);
+    this.scene.add(fillLight);
+    this.lights.push(fillLight);
+    
+    // 動的ポイントライト（ゲームエフェクト用）
+    this.dynamicLight = new THREE.PointLight(0xff6b6b, 0.0, 30);
+    this.dynamicLight.position.set(5, 15, 5);
+    this.scene.add(this.dynamicLight);
+    this.lights.push(this.dynamicLight);
+    
+    // リムライト（輪郭強調用）
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    rimLight.position.set(-15, 10, -10);
+    this.scene.add(rimLight);
+    this.lights.push(rimLight);
   }
 
   /**
@@ -238,14 +257,239 @@ export class WebGLRenderer extends BaseRenderer {
   }
 
   /**
+   * パーティクルシステムの初期化
+   */
+  initializeParticleSystem() {
+    // パーティクル用のジオメトリ（複数種類）
+    this.particleGeometries = [
+      new THREE.SphereGeometry(0.15, 12, 12),  // 球体（大）
+      new THREE.BoxGeometry(0.2, 0.2, 0.2),    // 立方体
+      new THREE.OctahedronGeometry(0.18, 0),   // 八面体
+      new THREE.TetrahedronGeometry(0.2, 0)    // 四面体
+    ];
+    
+    // パーティクル用のマテリアル（発光効果付き）
+    this.particleMaterials = [
+      new THREE.MeshPhongMaterial({ 
+        color: 0xff6b6b, 
+        transparent: true, 
+        opacity: 0.9,
+        emissive: 0x441111,
+        shininess: 100
+      }),
+      new THREE.MeshPhongMaterial({ 
+        color: 0x4ecdc4, 
+        transparent: true, 
+        opacity: 0.9,
+        emissive: 0x114444,
+        shininess: 100
+      }),
+      new THREE.MeshPhongMaterial({ 
+        color: 0x45b7d1, 
+        transparent: true, 
+        opacity: 0.9,
+        emissive: 0x112244,
+        shininess: 100
+      }),
+      new THREE.MeshPhongMaterial({ 
+        color: 0xf9ca24, 
+        transparent: true, 
+        opacity: 0.9,
+        emissive: 0x444411,
+        shininess: 100
+      }),
+      new THREE.MeshPhongMaterial({ 
+        color: 0xf0932b, 
+        transparent: true, 
+        opacity: 0.9,
+        emissive: 0x442211,
+        shininess: 100
+      }),
+      new THREE.MeshPhongMaterial({ 
+        color: 0xeb4d4b, 
+        transparent: true, 
+        opacity: 0.9,
+        emissive: 0x441111,
+        shininess: 100
+      }),
+      new THREE.MeshPhongMaterial({ 
+        color: 0x6c5ce7, 
+        transparent: true, 
+        opacity: 0.9,
+        emissive: 0x221144,
+        shininess: 100
+      })
+    ];
+  }
+
+  /**
+   * パーティクル爆発エフェクトを生成（Three.js標準アニメーション使用）
+   * @param {number} x - X座標
+   * @param {number} y - Y座標
+   * @param {number} z - Z座標
+   * @param {number} colorIndex - 色インデックス
+   * @param {number} count - パーティクル数
+   */
+  createParticleExplosion(x, y, z, colorIndex, count = 15) {
+    const particleGroup = new THREE.Group();
+    this.scene.add(particleGroup);
+    
+    const baseMaterial = this.particleMaterials[colorIndex % this.particleMaterials.length];
+    const now = performance.now();
+    
+    for (let i = 0; i < count; i++) {
+      // ランダムな形状を選択
+      const geometry = this.particleGeometries[Math.floor(Math.random() * this.particleGeometries.length)];
+      const material = baseMaterial.clone();
+      
+      const particle = new THREE.Mesh(geometry, material);
+      particle.position.set(x, y, z);
+      
+      // より派手なランダム方向と速度
+      const angle = (Math.PI * 2 * i) / count; // 円形に分散
+      const randomAngle = angle + (Math.random() - 0.5) * 0.8; // ランダム性を追加
+      const speed = 8 + Math.random() * 12; // 速度を大幅に上げる
+      
+      const velocity = {
+        x: Math.cos(randomAngle) * speed,
+        y: Math.random() * 15 + 5, // 上向きの速度を大幅に増加
+        z: Math.sin(randomAngle) * speed
+      };
+      
+      // 初期スケール
+      particle.scale.set(1.2, 1.2, 1.2);
+      
+      // アクティブパーティクルリストに追加
+      this.activeParticles.push({
+        particle: particle,
+        velocity: velocity,
+        startTime: now,
+        lifetime: 1500 + Math.random() * 500 // 1.5-2秒の寿命
+      });
+      
+      particleGroup.add(particle);
+    }
+    
+    // パーティクルグループを2.5秒後に削除
+    setTimeout(() => {
+      if (particleGroup.parent) {
+        this.scene.remove(particleGroup);
+      }
+    }, 2500);
+  }
+
+  /**
+   * ピース配置エフェクト
+   * @param {Object} piece - 配置されたピース
+   */
+  createPiecePlacementEffect(piece) {
+    if (!piece || !piece.matrix || !piece.pos) return;
+    
+    // 動的ライトのフラッシュエフェクト
+    this.createLightFlash(piece.pos.x + 2, 19 - piece.pos.y, 0);
+    
+    piece.matrix.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (value !== 0) {
+          const blockX = piece.pos.x + x;
+          const blockY = 19 - (piece.pos.y + y); // Y座標変換
+          const blockZ = 0;
+          
+          // 配置エフェクト（光る効果）
+          this.createPlacementGlow(blockX, blockY, blockZ, value);
+          
+          // パーティクル爆発
+          this.createParticleExplosion(blockX + 0.5, blockY + 0.5, blockZ + 0.5, value, 8);
+        }
+      });
+    });
+  }
+
+  /**
+   * 動的ライトのフラッシュエフェクト
+   * @param {number} x - X座標
+   * @param {number} y - Y座標
+   * @param {number} z - Z座標
+   */
+  createLightFlash(x, y, z) {
+    if (!this.dynamicLight) return;
+    
+    // ライトの位置を設定
+    this.dynamicLight.position.set(x, y, z);
+    
+    // 強度のアニメーション
+    new TWEEN.Tween(this.dynamicLight)
+      .to({ intensity: 2.0 }, 100)
+      .easing(TWEEN.Easing.Quadratic.Out)
+      .yoyo(true)
+      .repeat(1)
+      .onComplete(() => {
+        this.dynamicLight.intensity = 0.0;
+      })
+      .start();
+    
+    // 色の変化
+    const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0xf9ca24, 0xf0932b, 0xeb4d4b, 0x6c5ce7];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    this.dynamicLight.color.setHex(randomColor);
+  }
+
+  /**
+   * ブロック配置時の光るエフェクト
+   * @param {number} x - X座標
+   * @param {number} y - Y座標
+   * @param {number} z - Z座標
+   * @param {number} colorIndex - 色インデックス
+   */
+  createPlacementGlow(x, y, z, colorIndex) {
+    // 一時的な光るブロックを作成
+    const glowMaterial = this.blockMaterials[colorIndex].clone();
+    glowMaterial.emissive = new THREE.Color(0x444444);
+    glowMaterial.transparent = true;
+    
+    const glowBlock = new THREE.Mesh(this.blockGeometry, glowMaterial);
+    glowBlock.position.set(x, y, z);
+    this.scene.add(glowBlock);
+    
+    // 光るエフェクトのアニメーション
+    const originalEmissive = glowMaterial.emissive.clone();
+    const brightEmissive = originalEmissive.clone().multiplyScalar(3);
+    
+    new TWEEN.Tween(glowMaterial.emissive)
+      .to({ r: brightEmissive.r, g: brightEmissive.g, b: brightEmissive.b }, 150)
+      .easing(TWEEN.Easing.Quadratic.Out)
+      .yoyo(true)
+      .repeat(1)
+      .onComplete(() => {
+        this.scene.remove(glowBlock);
+        glowMaterial.dispose();
+      })
+      .start();
+  }
+
+  /**
+   * ブロックの色インデックスを取得
+   * @param {THREE.Mesh} block - ブロックメッシュ
+   * @returns {number} 色インデックス
+   */
+  getBlockColorIndex(block) {
+    for (let i = 0; i < this.blockMaterials.length; i++) {
+      if (block.material === this.blockMaterials[i]) {
+        return i;
+      }
+    }
+    return 1; // デフォルト値
+  }
+
+  /**
    * レンダリングループの開始
    */
   startRenderLoop() {
     const animate = () => {
       this.updateFPS();
       
-      // ここで将来的にアニメーション更新を行う
-      // this.updateAnimations();
+      // パーティクルアニメーションの更新
+      this.updateParticles();
       this._renderScene();
       TWEEN.update(); // TWEENアニメーションの更新
 
@@ -286,6 +530,50 @@ export class WebGLRenderer extends BaseRenderer {
     requestAnimationFrame(() => this.animate());
     TWEEN.update();
     this.render();
+  }
+
+  /**
+   * パーティクルアニメーションの更新
+   */
+  updateParticles() {
+    const now = performance.now();
+    
+    for (let i = this.activeParticles.length - 1; i >= 0; i--) {
+      const particleData = this.activeParticles[i];
+      const { particle, velocity, startTime, lifetime } = particleData;
+      
+      const elapsed = now - startTime;
+      const progress = elapsed / lifetime;
+      
+      if (progress >= 1.0) {
+        // パーティクルの寿命が尽きた
+        particle.parent.remove(particle);
+        particle.material.dispose();
+        this.activeParticles.splice(i, 1);
+        continue;
+      }
+      
+      // 位置の更新（重力効果付き）
+      const deltaTime = 0.016; // 約60FPS想定
+      particle.position.x += velocity.x * deltaTime;
+      particle.position.y += velocity.y * deltaTime;
+      particle.position.z += velocity.z * deltaTime;
+      
+      // 重力効果
+      velocity.y -= 9.8 * deltaTime;
+      
+      // 回転
+      particle.rotation.x += 0.1;
+      particle.rotation.y += 0.05;
+      particle.rotation.z += 0.08;
+      
+      // フェードアウト
+      particle.material.opacity = 1.0 - progress;
+      
+      // スケール変化
+      const scale = 1.5 * (1.0 - progress) + 0.1;
+      particle.scale.set(scale, scale, scale);
+    }
   }
 
   /**
@@ -567,14 +855,25 @@ export class WebGLRenderer extends BaseRenderer {
     this.boardGroup.children.forEach(block => {
       const blockY = Math.floor(block.position.y); // ブロックのY座標を取得
       if (clearedLines.includes(19 - blockY)) { // Three.jsのY座標とボードのY座標を変換
+        // パーティクル爆発エフェクト
+        const colorIndex = this.getBlockColorIndex(block);
+        this.createParticleExplosion(
+          block.position.x + 0.5, 
+          block.position.y + 0.5, 
+          block.position.z + 0.5, 
+          colorIndex, 
+          12
+        );
+        
         // フェードアウトアニメーション
         new TWEEN.Tween(block.material)
           .to({ opacity: 0 }, 300) // 300msで透明にする
           .easing(TWEEN.Easing.Quadratic.Out)
           .onComplete(() => {
-            block.visible = false;
-            // 必要に応じて、ここでブロックをシーンから削除する
-            // this.boardGroup.remove(block);
+            // ブロックを完全に削除
+            this.boardGroup.remove(block);
+            if (block.geometry) block.geometry.dispose();
+            if (block.material) block.material.dispose();
           })
           .start();
         block.material.transparent = true; // 透明度を有効にする
@@ -627,11 +926,37 @@ export class WebGLRenderer extends BaseRenderer {
     this.clearGroup(this.nextPieceGroup);
     this.clearGroup(this.holdPieceGroup);
     
+    // パーティクルグループのクリーンアップ
+    this.particleGroups.forEach(group => {
+      this.clearGroup(group);
+      this.scene.remove(group);
+    });
+    this.particleGroups.clear();
+    
+    // アクティブパーティクルのクリーンアップ
+    this.activeParticles.forEach(particleData => {
+      if (particleData.particle.parent) {
+        particleData.particle.parent.remove(particleData.particle);
+      }
+      particleData.particle.material.dispose();
+    });
+    this.activeParticles = [];
+    
     if (this.blockGeometry) {
       this.blockGeometry.dispose();
     }
     
+    if (this.particleGeometries) {
+      this.particleGeometries.forEach(geometry => {
+        if (geometry) geometry.dispose();
+      });
+    }
+    
     this.blockMaterials.forEach(material => {
+      if (material) material.dispose();
+    });
+    
+    this.particleMaterials.forEach(material => {
       if (material) material.dispose();
     });
     

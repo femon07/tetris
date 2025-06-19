@@ -4,8 +4,11 @@ import GameUI from "./ui/GameUI.js";
 import { RendererFactory } from './rendering/RendererFactory.js';
 import { GameStateManager } from './state/GameStateManager.js';
 
+// グローバルなゲームインスタンス
+let tetrisGame = null;
+
 // --- グローバル変数と状態管理 ---
-export let tetrisGame = new Game();
+
 export const eventManager = new EventTarget();
 export const gameStateManager = new GameStateManager(GAME_CONSTANTS.ROWS, GAME_CONSTANTS.COLS);
 export let renderer = null;
@@ -283,8 +286,10 @@ export function resetGame() {
   // 状態管理器をリセット
   gameStateManager.reset();
   
-  // ゲームのリセット
-  tetrisGame.reset();
+  // ゲームのリセット（tetrisGameが存在する場合のみ）
+  if (typeof tetrisGame !== 'undefined' && tetrisGame) {
+    tetrisGame.reset();
+  }
   
   // ゲーム状態の更新と描画
   updateGameState();
@@ -354,6 +359,15 @@ export function init() {
     console.log('イベントリスナーを設定します...');
     setupEventListeners(gameUI.onKeyDown.bind(gameUI), gameUI.onKeyUp.bind(gameUI));
     
+    // ゲームの初期化
+    console.log('ゲームを初期化します...');
+    initGame(renderer);
+    
+    // ゲームステートマネージャーにゲームインスタンスを設定
+    if (tetrisGame) {
+      gameStateManager.set('game', tetrisGame);
+    }
+    
     // ゲームのリセット
     console.log('ゲームをリセットします...');
     resetGame();
@@ -368,6 +382,17 @@ export function init() {
     gameStateManager.set('dropCounter', 0);
     const gameLoopId = requestAnimationFrame(update);
     gameStateManager.setGameLoopId(gameLoopId);
+    
+    // ウィンドウのリサイズイベントリスナーを設定
+    window.addEventListener('resize', () => {
+      const state = gameStateManager.getState();
+      const width = state.COLS * GAME_CONSTANTS.BLOCK_SIZE;
+      const height = state.ROWS * GAME_CONSTANTS.BLOCK_SIZE;
+      
+      if (renderer && typeof renderer.resize === 'function') {
+        renderer.resize(width, height);
+      }
+    });
     
     console.log('ゲームの初期化が完了しました。');
     
@@ -388,8 +413,12 @@ export function init() {
   }
 }
 
-// initGame関数はinitのエイリアス（テスト互換性のため）
-export function initGame() {
+/**
+ * ゲームを初期化する
+ * @param {Object} renderer - レンダラーインスタンス
+ * @returns {HTMLCanvasElement} 初期化されたキャンバス要素
+ */
+export function initGame(renderer) {
   const canvas = document.getElementById('game');
   if (!canvas) {
     console.error('Canvas要素が見つかりません');
@@ -418,6 +447,9 @@ export function initGame() {
   canvas.width = state.COLS * GAME_CONSTANTS.BLOCK_SIZE;
   canvas.height = state.ROWS * GAME_CONSTANTS.BLOCK_SIZE;
   
+  // tetrisGameを初期化（レンダラーを渡す）
+  tetrisGame = new Game(GAME_CONSTANTS.COLS, GAME_CONSTANTS.ROWS, renderer);
+
   return canvas;
 }
 
@@ -429,5 +461,5 @@ export function setTetrisGame(newGame) {
   tetrisGame = newGame;
 }
 
-const exports = { init, initGame, playerMove, playerRotate, playerDrop, playerHold, gameUI, gameState, gameStateManager, renderer, resetGame, update, setupEventListeners, draw, tetrisGame };
+const exports = { init, initGame, playerMove, playerRotate, playerDrop, playerHold, gameUI, gameState, gameStateManager, renderer, resetGame, update, setupEventListeners, draw };
 export default exports;

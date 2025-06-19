@@ -5,12 +5,13 @@ import { HoldManager } from './HoldManager.js';
 
 
 export class Game {
-  constructor(cols = 10, rows = 20) {
+  constructor(cols = 10, rows = 20, renderer) {
     this.board = new Board(cols, rows);
     this.gameState = new GameStatistics();
     this.pieceManager = new PieceManager(cols, rows);
     this.holdManager = new HoldManager(this.pieceManager);
     
+    this.renderer = renderer;
     this.reset();
   }
 
@@ -151,11 +152,21 @@ export class Game {
     const dropped = this.pieceManager.dropPiece(() => this.hasCollision());
     
     if (!dropped) {
+      // ピース配置エフェクトを先に実行
+      const currentPiece = this.pieceManager.getCurrentPiece();
+      if (this.renderer && typeof this.renderer.createPiecePlacementEffect === 'function') {
+        this.renderer.createPiecePlacementEffect(currentPiece);
+      }
+      
       this.mergePiece();
       
-      const linesCleared = this.board.clearLines();
-      if (linesCleared > 0) {
-        this.gameState.addLines(linesCleared);
+      const clearedLines = this.board.clearLines(); // クリアされた行のインデックス配列を取得
+      if (clearedLines.length > 0) {
+        this.gameState.addLines(clearedLines.length);
+        // レンダラーにライン消去アニメーションを通知
+        if (this.renderer && typeof this.renderer.clearLinesAnimation === 'function') {
+          this.renderer.clearLinesAnimation(clearedLines);
+        }
       }
       
       this.spawnPiece();
