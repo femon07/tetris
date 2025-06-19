@@ -1,4 +1,5 @@
 import { Canvas2DRenderer } from './Canvas2DRenderer.js';
+import { WebGLRenderer } from './WebGLRenderer.js';
 
 /**
  * レンダラーの種類
@@ -27,6 +28,12 @@ export class RendererFactory {
       return RendererFactory.webglSupported;
     }
 
+    // テスト環境（Jest/JSDOM）では常にfalseを返す
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
+      RendererFactory.webglSupported = false;
+      return false;
+    }
+
     try {
       const canvas = document.createElement('canvas');
       const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
@@ -38,7 +45,10 @@ export class RendererFactory {
       
       return RendererFactory.webglSupported;
     } catch (error) {
-      console.warn('WebGL support check failed:', error);
+      // テスト環境では警告を出さない
+      if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+        console.warn('WebGL support check failed:', error);
+      }
       RendererFactory.webglSupported = false;
       return false;
     }
@@ -78,10 +88,14 @@ export class RendererFactory {
     const deviceMemory = navigator.deviceMemory || 4; // デフォルト4GB
     const hardwareConcurrency = navigator.hardwareConcurrency || 4; // デフォルト4コア
     
-    // 高性能デバイスの場合はWebGLを推奨（将来的に）
+    // 高性能デバイスの場合はWebGLを推奨
     if (deviceMemory >= 8 && hardwareConcurrency >= 8 && RendererFactory.isWebGLSupported()) {
-      // 現時点ではWebGLレンダラーが未実装なのでCanvas2Dを返す
-      return RendererType.CANVAS_2D;
+      return RendererType.WEBGL;
+    }
+    
+    // 中性能デバイスでもWebGLが使用可能なら推奨
+    if (deviceMemory >= 4 && RendererFactory.isWebGLSupported()) {
+      return RendererType.WEBGL;
     }
     
     return RendererType.CANVAS_2D;
@@ -108,9 +122,16 @@ export class RendererFactory {
         return new Canvas2DRenderer(canvas, colors, blockSize);
         
       case RendererType.WEBGL:
-        // WebGLレンダラーが実装されるまでフォールバック
-        console.warn('WebGL renderer not yet implemented, falling back to Canvas2D');
-        return new Canvas2DRenderer(canvas, colors, blockSize);
+        if (!RendererFactory.isWebGLSupported()) {
+          console.warn('WebGL not supported, falling back to Canvas2D');
+          return new Canvas2DRenderer(canvas, colors, blockSize);
+        }
+        try {
+          return new WebGLRenderer(canvas, colors, blockSize);
+        } catch (error) {
+          console.error('WebGL renderer creation failed, falling back to Canvas2D:', error);
+          return new Canvas2DRenderer(canvas, colors, blockSize);
+        }
         
       default:
         console.warn(`Unknown renderer type: ${type}, falling back to Canvas2D`);
