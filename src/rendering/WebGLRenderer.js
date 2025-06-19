@@ -12,6 +12,7 @@ import { WebGLDrawing } from './webgl/WebGLDrawing.js';
 import { WebGLAnimations } from './webgl/WebGLAnimations.js';
 import { WebGLPreviewRenderer } from './webgl/WebGLPreviewRenderer.js';
 import { WebGLGhost } from './webgl/WebGLGhost.js';
+import { HardDropEffect } from '../effects/HardDropEffect.js';
 
 /**
  * WebGL/Three.jsを使用する3Dレンダラー
@@ -54,6 +55,7 @@ export class WebGLRenderer extends BaseRenderer {
     this.animations = null;
     this.previewRenderer = null;
     this.ghost = null;
+    this.hardDropEffect = null;
     
     // 状態管理
     this.frameCount = 0;
@@ -157,6 +159,33 @@ export class WebGLRenderer extends BaseRenderer {
     
     // ゴーストレンダラー
     this.ghost = new WebGLGhost(this.scene, this.blocks);
+    
+    // ハードドロップエフェクトの初期化
+    try {
+      const camera = this.camera?.getCamera();
+      console.log('[WebGLRenderer] HardDropEffect を初期化します', { 
+        hasCamera: !!camera,
+        hasScene: !!this.scene,
+        hasParticleSystem: !!this.particles
+      });
+      
+      // カメラがなくてもとりあえず初期化
+      this.hardDropEffect = new HardDropEffect(this.scene, this.particles, camera);
+      
+      // カメラが後から設定された場合に備えて、カメラの更新を監視
+      if (!camera && this.camera) {
+        const checkCamera = setInterval(() => {
+          const currentCamera = this.camera?.getCamera();
+          if (currentCamera) {
+            console.log('[WebGLRenderer] カメラが利用可能になりました。HardDropEffect を更新します。');
+            this.hardDropEffect.updateCamera(currentCamera);
+            clearInterval(checkCamera);
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error('[WebGLRenderer] HardDropEffect の初期化に失敗しました:', error);
+    }
   }
 
   /**
@@ -181,6 +210,7 @@ export class WebGLRenderer extends BaseRenderer {
     if (this.particles) this.particles.update();
     if (this.effects) this.effects.update();
     if (this.animations) this.animations.update();
+    if (this.hardDropEffect) this.hardDropEffect.update();
     
     // Tweenアニメーションの更新
     TWEEN.update();
@@ -286,6 +316,26 @@ export class WebGLRenderer extends BaseRenderer {
   }
 
   /**
+   * ハードドロップエフェクト
+   * @param {Object} piece - 落下したピース
+   * @param {Object} startPos - 開始位置
+   * @param {Object} endPos - 終了位置
+   * @param {number} dropDistance - 落下距離
+   */
+  createHardDropEffect(piece, startPos, endPos, dropDistance) {
+    if (!this.hardDropEffect) {
+      console.warn('hardDropEffectが初期化されていません');
+      return;
+    }
+
+    try {
+      this.hardDropEffect.createHardDropEffect(piece, startPos, endPos, dropDistance);
+    } catch (error) {
+      console.error('ハードドロップエフェクトの作成中にエラーが発生しました:', error);
+    }
+  }
+
+  /**
    * ウィンドウリサイズ処理
    */
   resize() {
@@ -325,7 +375,8 @@ export class WebGLRenderer extends BaseRenderer {
         drawing: this.drawing?.getStats() || {},
         animations: this.animations?.getStats() || {},
         preview: this.previewRenderer?.getStats() || {},
-        ghost: this.ghost?.getStats() || {}
+        ghost: this.ghost?.getStats() || {},
+        hardDropEffect: this.hardDropEffect?.getStats() || {}
       }
     };
   }
@@ -335,6 +386,7 @@ export class WebGLRenderer extends BaseRenderer {
    */
   dispose() {
     // サブシステムの解放
+    if (this.hardDropEffect) this.hardDropEffect.dispose();
     if (this.ghost) this.ghost.dispose();
     if (this.previewRenderer) this.previewRenderer.dispose();
     if (this.animations) this.animations.dispose();

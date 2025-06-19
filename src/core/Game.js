@@ -68,15 +68,6 @@ export class Game {
       null // 内部衝突判定を使用
     );
     
-    // デバッグログ追加
-    if (ghostPos) {
-      console.log('[Game] ゴースト位置計算完了:', {
-        current: currentPiece.pos,
-        ghost: ghostPos.pos,
-        matrix: ghostPos.matrix.length
-      });
-    }
-    
     return ghostPos;
   }
 

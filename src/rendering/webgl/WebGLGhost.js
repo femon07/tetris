@@ -87,11 +87,6 @@ export class WebGLGhost {
 
     const { matrix, pos, colorIndex } = ghostData;
     
-    console.log('[WebGLGhost] ゴースト描画開始:', {
-      pos,
-      colorIndex,
-      matrixSize: matrix.length
-    });
     
     // 有効な色インデックスかチェック
     if (!this.isValidColorIndex(colorIndex)) {

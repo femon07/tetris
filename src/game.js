@@ -3,9 +3,15 @@ import { GAME_CONSTANTS } from './constants/game.js';
 import GameUI from "./ui/GameUI.js";
 import { RendererFactory } from './rendering/RendererFactory.js';
 import { GameStateManager } from './state/GameStateManager.js';
+import { GameApplication } from './app/GameApplication.js';
+import { InputController } from './app/InputController.js';
+import { GameLoop } from './core/GameLoop.js';
 
 // グローバルなゲームインスタンス
 let tetrisGame = null;
+let gameApplication = null;
+let inputController = null;
+let gameLoop = null;
 
 // --- グローバル変数と状態管理 ---
 
@@ -51,10 +57,6 @@ function draw() {
       ghostPiece: ghostPiece
     };
     
-    // デバッグログ
-    if (ghostPiece) {
-      console.log('[game.js] ゴーストピースあり:', ghostPiece);
-    }
     
     const nextPieceCanvas = document.getElementById('next-piece-canvas');
     const holdPieceCanvas = document.getElementById('hold-piece-canvas');
@@ -326,7 +328,7 @@ function setupEventListeners(onKeyDown, onKeyUp) {
 // テスト用のsetupEventListeners関数をエクスポート
 export { setupEventListeners };
 
-export function init() {
+export async function init() {
   try {
     console.log('ゲームの初期化を開始します...');
     
@@ -366,6 +368,23 @@ export function init() {
     console.log('イベントリスナーを設定します...');
     setupEventListeners(gameUI.onKeyDown.bind(gameUI), gameUI.onKeyUp.bind(gameUI));
     
+    // GameApplicationの初期化
+    console.log('[game.js] GameApplicationを初期化します...');
+    gameApplication = new GameApplication(renderer);
+    const initSuccess = await gameApplication.initialize();
+
+    if (!initSuccess) {
+      throw new Error('GameApplicationの初期化に失敗しました');
+    }
+
+    // GameLoopの初期化
+    gameLoop = new GameLoop(gameApplication, gameUI);
+
+    // InputControllerの初期化
+    console.log('[game.js] InputControllerを初期化します...');
+    inputController = new InputController(gameApplication, gameLoop);
+    inputController.initialize();
+
     // ゲームの初期化
     console.log('ゲームを初期化します...');
     initGame(renderer);

@@ -2,48 +2,40 @@ import { Game } from '../core/Game.js';
 import { RendererFactory } from '../rendering/RendererFactory.js';
 import { GameStateManager } from '../state/GameStateManager.js';
 import { GAME_CONSTANTS } from '../constants/game.js';
+import { InputController } from './InputController.js';
 
 export class GameApplication {
-  constructor() {
+  constructor(renderer) {
     this.game = new Game();
     this.gameStateManager = new GameStateManager(GAME_CONSTANTS.ROWS, GAME_CONSTANTS.COLS);
-    this.renderer = null;
+    this.renderer = renderer;
+    this.inputController = null;
     this.isInitialized = false;
   }
 
   async initialize() {
     try {
+      console.log('--- GameApplication.initialize が呼び出されました ---');
+      console.log('[GameApplication] 初期化を開始します');
+      
       // キャンバス要素の取得
       const canvas = document.getElementById('game');
       if (!canvas) {
         throw new Error('Canvas要素が見つかりません');
       }
 
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        throw new Error('2Dコンテキストの取得に失敗しました');
-      }
-
-      // レンダラーの初期化
-      const { COLORS, BLOCK_SIZE } = GAME_CONSTANTS;
-      this.renderer = RendererFactory.createAutoRenderer(canvas, COLORS, BLOCK_SIZE);
-
-      // キャンバスのサイズ設定
-      const state = this.gameStateManager.getState();
-      canvas.width = state.COLS * BLOCK_SIZE;
-      canvas.height = state.ROWS * BLOCK_SIZE;
-
+      console.log('[GameApplication] ゲーム状態を初期化します');
       // ゲーム状態の初期化
-      this.gameStateManager.set('ctx', ctx);
-      this.gameStateManager.set('canvas', canvas);
       this.gameStateManager.initBoard();
 
+      console.log('[GameApplication] 入力コントローラーの初期化が完了しました');
+
       this.isInitialized = true;
-      console.log('GameApplication initialized successfully');
+      console.log('[GameApplication] 初期化が完了しました');
       
       return true;
     } catch (error) {
-      console.error('GameApplication initialization failed:', error);
+      console.error('[GameApplication] 初期化に失敗しました:', error);
       return false;
     }
   }
@@ -148,6 +140,10 @@ export class GameApplication {
   // レンダラーの取得
   getRenderer() {
     return this.renderer;
+  }
+
+  getInputController() {
+    return this.inputController;
   }
 
   // ゲーム状態管理器の取得
