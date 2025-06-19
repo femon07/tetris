@@ -41,34 +41,44 @@ src/
 
 ### コアコンポーネント
 
-**コアクラス (`src/core/`)**：
-- `Game.js` - メインゲームの状態管理とロジックコントローラー  
-- その他、ゲームのコアロジックを担当するモジュール
+**メインモジュール**:
+- `src/core/` - ゲームのコアロジック
+  - `Board.js` - ゲームボードの状態管理
+  - `Piece.js` - テトリミノの基本クラス
+  - `Game.js` - ゲームのメインループと状態管理
+  - `HoldManager.js` - ホールド機能の管理
+  - `PieceManager.js` - テトリミノの生成と管理
 
-**エントリーポイント**：
-- `src/index.js` - アプリケーションのメインエントリーポイント
-- `src/game.js` - ゲームの初期化とグローバル状態管理
-
-**サポートモジュール**：
-- `src/constants/` - ゲーム定数
-- `src/event/` - イベント処理
+**レンダリング**:
 - `src/rendering/` - レンダリング関連
-- `src/rotation/` - ピースの回転ロジック
-- `src/scoring/` - スコアリングシステム
-- `src/state/` - ゲーム状態管理
-- `src/ui/` - UIコンポーネント
+  - `RendererFactory.js` - レンダラーのファクトリ
+  - `Canvas2DRenderer.js` - 2Dキャンバスレンダラー
+  - `webgl/` - WebGLレンダリング関連
+    - `WebGLRenderer.js` - WebGLレンダラーのメインクラス
+    - `WebGLDrawing.js` - WebGL描画ロジック
+
+**ユーティリティ**:
+- `src/utils/` - ユーティリティ関数
+- `src/constants/` - ゲーム定数
+- `src/events/` - イベント処理
+
+**UI**:
+- `src/app/` - アプリケーションロジック
+  - `GameApplication.js` - ゲームアプリケーションのエントリーポイント
+  - `GameLoop.js` - ゲームループの管理
+  - `InputController.js` - 入力制御
+  - `UIUpdater.js` - UI更新ロジック
 
 ### テスト構造
-テストは `tests/` ディレクトリに `src/` と同様の構造で配置：
-- コアロジックテスト: `tests/core/`
-- ゲーム機能テスト: `tests/game/`
-- イベントテスト: `tests/event/`
-- レンダリングテスト: `tests/rendering/`
-- 回転ロジックテスト: `tests/rotation/`
-- スコアリングテスト: `tests/scoring/`
-- 状態管理テスト: `tests/state/`
-- UIテスト: `tests/ui/`
-- ヘルパー関数: `tests/helpers/`
+テストは `tests/` ディレクトリに配置：
+- `unit/` - ユニットテスト
+  - `core/` - コアロジックのテスト
+  - `rendering/` - レンダリング関連のテスト
+  - `utils/` - ユーティリティ関数のテスト
+- `integration/` - 統合テスト
+- `e2e/` - エンドツーエンドテスト
+- `__mocks__/` - モック実装
+- `helpers/` - テストヘルパー
 
 ### ビルドシステム
 - **Webpack**: モジュールバンドラー
@@ -78,10 +88,11 @@ src/
 
 ## ブランチ戦略
 
-このプロジェクトはシングル開発者ワークフローを採用：
-- `main` ブランチは常に安定版でデプロイ可能
-- 新機能開発: `feature/*` ブランチ
-- 緊急修正: `hotfix/*` ブランチ
+- `main`: 安定版リリースブランチ
+- `feature/*`: 新機能開発用ブランチ（例: `feature/webgl-renderer`）
+- `fix/*`: バグ修正用ブランチ
+- `hotfix/*`: 緊急修正用ブランチ
+- `test/*`: テスト関連の変更用ブランチ（例: `test/improve-coverage`）
 
 ## コミットメッセージガイドライン
 
@@ -106,7 +117,16 @@ src/
 - `ci`: CI/CD関連の変更
 
 ### スコープ（省略可）
-変更が影響するコンポーネントやモジュール（例: `game`, `ui`, `rendering`, `core`）
+変更が影響するコンポーネントやモジュール（例: `game`, `ui`, `rendering`, `core`, `test`）
+
+主なスコープ一覧：
+- `core`: ゲームロジック（Game, Board, Piece など）
+- `rendering`: レンダリング関連（Canvas2DRenderer, WebGLRenderer など）
+- `ui`: ユーザーインターフェース
+- `event`: イベント処理
+- `test`: テスト関連
+- `config`: 設定ファイル
+- `docs`: ドキュメント
 
 ### 件名のルール
 - 50文字以内で簡潔に記述
