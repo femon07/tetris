@@ -10,6 +10,7 @@ import { WebGLEffects } from './webgl/WebGLEffects.js';
 import { WebGLBlocks } from './webgl/WebGLBlocks.js';
 import { WebGLDrawing } from './webgl/WebGLDrawing.js';
 import { WebGLAnimations } from './webgl/WebGLAnimations.js';
+import { WebGLPreviewRenderer } from './webgl/WebGLPreviewRenderer.js';
 
 /**
  * WebGL/Three.jsを使用する3Dレンダラー
@@ -50,6 +51,7 @@ export class WebGLRenderer extends BaseRenderer {
     this.blocks = null;
     this.drawing = null;
     this.animations = null;
+    this.previewRenderer = null;
     
     // 状態管理
     this.frameCount = 0;
@@ -147,6 +149,9 @@ export class WebGLRenderer extends BaseRenderer {
     
     // アニメーションシステム
     this.animations = new WebGLAnimations(this.blocks, this.particles);
+    
+    // プレビューレンダラー
+    this.previewRenderer = new WebGLPreviewRenderer(this.blocks);
   }
 
   /**
@@ -215,7 +220,7 @@ export class WebGLRenderer extends BaseRenderer {
   /**
    * ゲーム全体を描画
    */
-  render(gameData) {
+  render(gameData, nextPieceCanvas = null, holdPieceCanvas = null) {
     if (!gameData) {
       console.warn('[WebGLRenderer] 描画スキップ: ゲームデータがありません');
       return;
@@ -224,6 +229,15 @@ export class WebGLRenderer extends BaseRenderer {
     try {
       // 描画システムに委譲
       this.drawing.renderAll(gameData, this.groups);
+      
+      // Next/Holdピースを3Dキャンバスに描画
+      if (nextPieceCanvas && gameData.nextPiece) {
+        this.previewRenderer.renderPiece(nextPieceCanvas, gameData.nextPiece);
+      }
+      
+      if (holdPieceCanvas && gameData.holdPiece) {
+        this.previewRenderer.renderPiece(holdPieceCanvas, gameData.holdPiece);
+      }
       
       // ボード初期化フラグの更新
       if (gameData.boardGrid && !this.isBoardInitialized) {
@@ -235,6 +249,7 @@ export class WebGLRenderer extends BaseRenderer {
       console.error('[WebGLRenderer] レンダリングエラー:', error);
     }
   }
+
 
   /**
    * ピース配置エフェクト
@@ -296,7 +311,8 @@ export class WebGLRenderer extends BaseRenderer {
         effects: this.effects?.getStats() || {},
         blocks: this.blocks?.getStats() || {},
         drawing: this.drawing?.getStats() || {},
-        animations: this.animations?.getStats() || {}
+        animations: this.animations?.getStats() || {},
+        preview: this.previewRenderer?.getStats() || {}
       }
     };
   }
@@ -306,6 +322,7 @@ export class WebGLRenderer extends BaseRenderer {
    */
   dispose() {
     // サブシステムの解放
+    if (this.previewRenderer) this.previewRenderer.dispose();
     if (this.animations) this.animations.dispose();
     if (this.drawing) this.drawing.dispose();
     if (this.effects) this.effects.dispose();
