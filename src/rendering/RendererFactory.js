@@ -39,6 +39,7 @@ export class RendererFactory {
       const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
       RendererFactory.webglSupported = !!gl;
       
+      
       // テスト用のcanvasをクリーンアップ
       canvas.width = 1;
       canvas.height = 1;
@@ -73,8 +74,10 @@ export class RendererFactory {
    * @returns {string} デフォルトレンダラータイプ
    */
   static getDefaultRendererType() {
-    // 現時点ではCanvas2Dをデフォルトとする
-    // 将来的にはユーザー設定やパフォーマンスに基づいて決定
+    // WebGLが利用可能な場合はWebGLを優先
+    if (RendererFactory.isWebGLSupported()) {
+      return RendererType.WEBGL;
+    }
     return RendererType.CANVAS_2D;
   }
 
@@ -84,17 +87,8 @@ export class RendererFactory {
    * @returns {string} 推奨レンダラータイプ
    */
   static getRecommendedRendererType() {
-    // 簡単なパフォーマンス推定
-    const deviceMemory = navigator.deviceMemory || 4; // デフォルト4GB
-    const hardwareConcurrency = navigator.hardwareConcurrency || 4; // デフォルト4コア
-    
-    // 高性能デバイスの場合はWebGLを推奨
-    if (deviceMemory >= 8 && hardwareConcurrency >= 8 && RendererFactory.isWebGLSupported()) {
-      return RendererType.WEBGL;
-    }
-    
-    // 中性能デバイスでもWebGLが使用可能なら推奨
-    if (deviceMemory >= 4 && RendererFactory.isWebGLSupported()) {
+    // WebGLが利用可能であれば基本的に推奨
+    if (RendererFactory.isWebGLSupported()) {
       return RendererType.WEBGL;
     }
     
@@ -117,6 +111,7 @@ export class RendererFactory {
     // レンダラータイプの正規化
     const normalizedType = type ? type.toLowerCase() : RendererFactory.getDefaultRendererType();
 
+
     switch (normalizedType) {
       case RendererType.CANVAS_2D:
         return new Canvas2DRenderer(canvas, colors, blockSize);
@@ -127,14 +122,14 @@ export class RendererFactory {
           return new Canvas2DRenderer(canvas, colors, blockSize);
         }
         try {
-          return new WebGLRenderer(canvas, colors, blockSize);
+          const renderer = new WebGLRenderer(canvas, colors, blockSize);
+          return renderer;
         } catch (error) {
           console.error('WebGL renderer creation failed, falling back to Canvas2D:', error);
           return new Canvas2DRenderer(canvas, colors, blockSize);
         }
         
       default:
-        console.warn(`Unknown renderer type: ${type}, falling back to Canvas2D`);
         return new Canvas2DRenderer(canvas, colors, blockSize);
     }
   }

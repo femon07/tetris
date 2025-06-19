@@ -324,19 +324,23 @@ export function init() {
       return null;
     }
     
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      console.error('2Dコンテキストの取得に失敗しました');
-      return null;
+    // レンダラーの初期化を先に行う（コンテキストの競合を避けるため）
+    const { COLORS, BLOCK_SIZE } = GAME_CONSTANTS;
+    renderer = RendererFactory.createAutoRenderer(canvas, COLORS, BLOCK_SIZE);
+    
+    // レンダラーがCanvas2Dの場合のみ2Dコンテキストを取得
+    let ctx = null;
+    if (renderer && !renderer.isWebGL()) {
+      ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.error('2Dコンテキストの取得に失敗しました');
+        return null;
+      }
     }
     
     // ゲームステートの初期化
     gameStateManager.set('ctx', ctx);
     gameStateManager.set('canvas', canvas);
-    
-    // レンダラーの初期化
-    const { COLORS, BLOCK_SIZE } = GAME_CONSTANTS;
-    renderer = RendererFactory.createAutoRenderer(canvas, COLORS, BLOCK_SIZE);
     
     // キャンバスのサイズ設定
     const state = gameStateManager.getState();
@@ -392,10 +396,20 @@ export function initGame() {
     return null;
   }
   
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    console.error('2Dコンテキストの取得に失敗しました');
-    return null;
+  // レンダラーがまだ初期化されていない場合は初期化
+  if (!renderer) {
+    const { COLORS, BLOCK_SIZE } = GAME_CONSTANTS;
+    renderer = RendererFactory.createAutoRenderer(canvas, COLORS, BLOCK_SIZE);
+  }
+  
+  // レンダラーがCanvas2Dの場合のみ2Dコンテキストを取得
+  let ctx = null;
+  if (renderer && !renderer.isWebGL()) {
+    ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.error('2Dコンテキストの取得に失敗しました');
+      return null;
+    }
   }
   
   gameStateManager.set('ctx', ctx);

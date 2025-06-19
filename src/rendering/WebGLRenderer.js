@@ -74,8 +74,9 @@ export class WebGLRenderer extends BaseRenderer {
     const aspect = this.canvas.width / this.canvas.height;
     this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
     
-    // テトリスボードを見下ろす角度に設定
-    this.camera.position.set(5, 15, 10);
+    // テトリスボードを正面から見る視点に設定
+    // ボードの中央（x=5, y=10）を正面から見る
+    this.camera.position.set(5, 10, 15);
     this.camera.lookAt(5, 10, 0);
   }
 
@@ -124,15 +125,29 @@ export class WebGLRenderer extends BaseRenderer {
    * ブロックジオメトリの初期化
    */
   initializeBlockGeometry() {
+    if (!this.colors || !Array.isArray(this.colors)) {
+      throw new Error('Colors array is not defined or not an array');
+    }
+    
     // 立方体ジオメトリ（若干のベベル効果）
     this.blockGeometry = new THREE.BoxGeometry(0.9, 0.9, 0.9);
     
-    // 各色のマテリアルを作成
+    // 各色のマテリアルを作成（インデックス0も含めて全て作成）
     this.blockMaterials = this.colors.map((color, index) => {
-      if (index === 0) return null; // 空ブロック用
+      // 16進数の色値をThree.jsのColorオブジェクトに変換
+      const threeColor = typeof color === 'number' ? new THREE.Color(color) : new THREE.Color(color);
+      
+      if (index === 0) {
+        // 空ブロック用の透明マテリアル
+        return new THREE.MeshPhongMaterial({
+          color: threeColor,
+          transparent: true,
+          opacity: 0
+        });
+      }
       
       return new THREE.MeshPhongMaterial({
-        color: new THREE.Color(color),
+        color: threeColor,
         shininess: 100,
         specular: 0x222222
       });
@@ -175,7 +190,6 @@ export class WebGLRenderer extends BaseRenderer {
    */
   drawMatrix(matrix, offset, colors = this.colors, blockSize = this.blockSize) {
     if (!matrix || !Array.isArray(matrix) || !offset) {
-      console.warn('WebGL drawMatrix: Invalid parameters');
       return;
     }
 
@@ -188,7 +202,7 @@ export class WebGLRenderer extends BaseRenderer {
         if (value !== 0) {
           this.createBlock(
             x + offset.x,
-            -(y + offset.y), // Y軸を反転（3D座標系）
+            19 - (y + offset.y), // Y座標を調整：ボードと同じ座標系に
             0,
             value,
             this.currentPieceGroup
@@ -202,7 +216,13 @@ export class WebGLRenderer extends BaseRenderer {
    * 3Dブロックを作成する
    */
   createBlock(x, y, z, colorIndex, parent = this.boardGroup) {
-    if (!this.blockMaterials[colorIndex]) return null;
+    // 境界チェック：colorIndexが有効な範囲内にあるかチェック
+    if (colorIndex === 0 || 
+        colorIndex < 0 || 
+        colorIndex >= this.blockMaterials.length || 
+        !this.blockMaterials[colorIndex]) {
+      return null;
+    }
 
     const mesh = new THREE.Mesh(this.blockGeometry, this.blockMaterials[colorIndex]);
     mesh.position.set(x, y, z);
@@ -246,7 +266,8 @@ export class WebGLRenderer extends BaseRenderer {
       if (!Array.isArray(row)) return;
       row.forEach((value, x) => {
         if (value !== 0) {
-          this.createBlock(x, -(y), 0, value, this.boardGroup);
+          // Y座標を調整：ボードの上部が画面上部になるように
+          this.createBlock(x, 19 - y, 0, value, this.boardGroup);
         }
       });
     });
@@ -266,7 +287,6 @@ export class WebGLRenderer extends BaseRenderer {
    */
   drawNextPiece(nextPieceCanvas, nextPiece) {
     // 将来的に別の3Dシーンで実装
-    console.log('WebGL next piece rendering not yet implemented');
   }
 
   /**
@@ -274,7 +294,6 @@ export class WebGLRenderer extends BaseRenderer {
    */
   drawHoldPiece(holdPieceCanvas, holdPiece) {
     // 将来的に別の3Dシーンで実装
-    console.log('WebGL hold piece rendering not yet implemented');
   }
 
   /**
