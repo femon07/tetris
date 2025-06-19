@@ -6,9 +6,9 @@ import { HoldManager } from '../../src/core/HoldManager.js';
 
 // 新しいアーキテクチャのモック
 jest.mock('../../src/core/Board.js');
-jest.mock('../../src/core/GameStateManager.js');
 jest.mock('../../src/core/PieceManager.js');
 jest.mock('../../src/core/HoldManager.js');
+jest.mock('../../src/core/GameStateManager.js');
 
 describe('Game クラス', () => {
   let game;
@@ -29,19 +29,19 @@ describe('Game クラス', () => {
     };
     Board.mockImplementation(() => mockBoardInstance);
 
-    // GameStatistics のモック
     mockGameState = {
+      addLines: jest.fn(),
+      addScore: jest.fn(),
       reset: jest.fn(),
+      setGameOver: jest.fn(),
+      startSoftDrop: jest.fn(),
+      stopSoftDrop: jest.fn(),
+      dropInterval: 1000,
       level: 1,
       lines: 0,
       score: 0,
       isGameOver: false,
       paused: false,
-      dropInterval: 1000,
-      addLines: jest.fn(),
-      setGameOver: jest.fn(),
-      startSoftDrop: jest.fn(),
-      stopSoftDrop: jest.fn()
     };
     GameStatistics.mockImplementation(() => mockGameState);
 
@@ -62,7 +62,7 @@ describe('Game クラス', () => {
       spawnNewPiece: jest.fn(),
       clearCurrentPiece: jest.fn(),
       movePiece: jest.fn().mockReturnValue(true),
-      dropPiece: jest.fn().mockReturnValue(true),
+      dropPiece: jest.fn().mockReturnValue(false),
       rotatePiece: jest.fn().mockReturnValue(true)
     };
     PieceManager.mockImplementation(() => mockPieceManager);
@@ -167,7 +167,7 @@ describe('Game クラス', () => {
 
     test('ラインがクリアされた場合、ゲーム状態が更新される', () => {
       mockPieceManager.dropPiece.mockReturnValue(false); // ドロップできない
-      mockBoardInstance.clearLines.mockReturnValue(2); // 2ラインクリア
+      mockBoardInstance.clearLines.mockReturnValue([0, 1]); // 2ラインクリア
       
       game.dropPiece();
       

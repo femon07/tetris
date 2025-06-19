@@ -1,7 +1,6 @@
 {
   "name": "tetris",
   "version": "1.0.0",
-  "type": "module",
   "homepage": "https://femon07.github.io/tetris",
   "description": "A modern Tetris game with clean architecture and testable design",
   "scripts": {
@@ -30,12 +29,12 @@
     "@babel/runtime": "^7.27.6",
     "@jest/globals": "^29.7.0",
     "@types/jest": "^29.5.14",
-    "babel-jest": "^29.7.0",
+    "babel-jest": "^30.0.2",
     "babel-loader": "^10.0.0",
     "cpx": "^1.2.1",
     "cross-env": "^7.0.3",
     "css-loader": "^6.10.0",
-    "jest": "^29.7.0",
+    "jest": "^30.0.2",
     "jest-canvas-mock": "^2.5.2",
     "jest-environment-jsdom": "^29.7.0",
     "js-yaml": "^4.1.0",
@@ -62,6 +61,21 @@
         }
       ]
     ],
+    "env": {
+      "test": {
+        "presets": [
+          [
+            "@babel/preset-env",
+            {
+              "targets": {
+                "node": "current"
+              },
+              "modules": "commonjs"
+            }
+          ]
+        ]
+      }
+    },
     "plugins": [
       [
         "@babel/plugin-transform-runtime",

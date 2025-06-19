@@ -68,11 +68,18 @@ export class WebGLRenderer extends BaseRenderer {
 
   /**
    * WebGLレンダラーの初期化
+   * - Three.js基盤の初期化
+   * - サブシステムの初期化
+   * - レンダリングループの開始
+   * @returns {boolean} 初期化が成功したか
    */
   initialize() {
     try {
+      // 依存関係: Three.jsのシーンとレンダラーが最初に設定される必要がある
       this.initializeThreeJS();
+      // 依存関係: 各サブシステムはThree.jsのシーンに依存する
       this.initializeSubSystems();
+      // 依存関係: レンダリングループは初期化されたサブシステムとThree.jsのレンダラーに依存する
       this.startRenderLoop();
       
       console.log('[WebGLRenderer] 統合システム初期化完了');
@@ -122,67 +129,54 @@ export class WebGLRenderer extends BaseRenderer {
   }
 
   /**
-   * サブシステムの初期化
+   * 各サブシステムの初期化
+   * - 各サブシステムはThree.jsのシーンや他のサブシステムに依存する
+   * @returns {void}
    */
   initializeSubSystems() {
-    // カメラシステム
+    // カメラシステム: canvasに依存
     this.camera = new WebGLCamera(this.canvas);
     this.camera.initialize();
     
-    // ライティングシステム
+    // ライティングシステム: sceneに依存
     this.lighting = new WebGLLighting(this.scene);
     this.lighting.initialize();
     
-    // ブロック管理システム
+    // ブロック管理システム: colors, blockSizeに依存
     this.blocks = new WebGLBlocks(this.colors, this.blockSize);
     this.blocks.initialize();
     
-    // パーティクルシステム
+    // パーティクルシステム: sceneに依存
     this.particles = new WebGLParticles(this.scene);
     this.particles.initialize();
     
-    // エフェクトシステム
+    // エフェクトシステム: scene, blocksのジオメトリとマテリアルに依存
     this.effects = new WebGLEffects(
       this.scene, 
       this.blocks.getGeometry(), 
       this.blocks.getMaterials()
     );
     
-    // 描画システム
+    // 描画システム: scene, blocksに依存
     this.drawing = new WebGLDrawing(this.scene, this.blocks);
     
-    // アニメーションシステム
+    // アニメーションシステム: blocks, particlesに依存
     this.animations = new WebGLAnimations(this.blocks, this.particles);
     
-    // プレビューレンダラー
+    // プレビューレンダラー: blocksに依存
     this.previewRenderer = new WebGLPreviewRenderer(this.blocks);
     
-    // ゴーストレンダラー
+    // ゴーストレンダラー: scene, blocksに依存
     this.ghost = new WebGLGhost(this.scene, this.blocks);
     
-    // ハードドロップエフェクトの初期化
+    // ハードドロップエフェクトの初期化: scene, particlesに依存し、cameraは非同期で設定される
     try {
-      const camera = this.camera?.getCamera();
-      console.log('[WebGLRenderer] HardDropEffect を初期化します', { 
-        hasCamera: !!camera,
+      // HardDropEffectのコンストラクタはcameraが非同期に設定されるため、最初はnullを渡す
+      this.hardDropEffect = new HardDropEffect(this.scene, this.particles, null);
+      console.log('[WebGLRenderer] HardDropEffect を初期化しました', {
         hasScene: !!this.scene,
         hasParticleSystem: !!this.particles
       });
-      
-      // カメラがなくてもとりあえず初期化
-      this.hardDropEffect = new HardDropEffect(this.scene, this.particles, camera);
-      
-      // カメラが後から設定された場合に備えて、カメラの更新を監視
-      if (!camera && this.camera) {
-        const checkCamera = setInterval(() => {
-          const currentCamera = this.camera?.getCamera();
-          if (currentCamera) {
-            console.log('[WebGLRenderer] カメラが利用可能になりました。HardDropEffect を更新します。');
-            this.hardDropEffect.updateCamera(currentCamera);
-            clearInterval(checkCamera);
-          }
-        }, 100);
-      }
     } catch (error) {
       console.error('[WebGLRenderer] HardDropEffect の初期化に失敗しました:', error);
     }
@@ -190,10 +184,14 @@ export class WebGLRenderer extends BaseRenderer {
 
   /**
    * レンダリングループの開始
+   * - requestAnimationFrameを使用して継続的にupdateSystemsとrenderSceneを呼び出す
+   * @returns {void}
    */
   startRenderLoop() {
     const animate = () => {
+      // 依存関係: updateSystemsは各サブシステムのロジックを更新する
       this.updateSystems();
+      // 依存関係: renderSceneはThree.jsのレンダラーとカメラを使用してシーンを描画する
       this.renderScene();
       requestAnimationFrame(animate);
     };
@@ -209,8 +207,12 @@ export class WebGLRenderer extends BaseRenderer {
     // サブシステムの更新
     if (this.particles) this.particles.update();
     if (this.effects) this.effects.update();
-    if (this.animations) this.animations.update();
+    // HardDropEffectにカメラがまだ設定されておらず、WebGLCameraのカメラが利用可能になったら設定
+    if (this.hardDropEffect && !this.hardDropEffect.camera && this.camera.camera) {
+      this.hardDropEffect.updateCamera(this.camera.camera);
+    }
     if (this.hardDropEffect) this.hardDropEffect.update();
+    if (this.animations) this.animations.update();
     
     // Tweenアニメーションの更新
     TWEEN.update();
@@ -395,7 +397,6 @@ export class WebGLRenderer extends BaseRenderer {
     if (this.particles) this.particles.dispose();
     if (this.blocks) this.blocks.dispose();
     if (this.lighting) this.lighting.dispose();
-    
     // グループのクリーンアップ
     Object.values(this.groups).forEach(group => {
       if (group && this.blocks) {

@@ -1,4 +1,15 @@
 export default class GameUI {
+  setupEventListeners() {
+    document.removeEventListener('keydown', this.onKeyDown);
+    document.removeEventListener('keyup', this.onKeyUp);
+    document.addEventListener('keydown', this.onKeyDown);
+    document.addEventListener('keyup', this.onKeyUp);
+  }
+
+  removeEventListeners() {
+    document.removeEventListener('keydown', this.onKeyDown);
+    document.removeEventListener('keyup', this.onKeyUp);
+  }
   constructor(state, actions, gameStateManager) {
     this.state = state;
     this.actions = actions;
@@ -84,10 +95,4 @@ export default class GameUI {
     }
   }
 
-  setupEventListeners(keyDownHandler = this.onKeyDown, keyUpHandler = this.onKeyUp) {
-    document.removeEventListener('keydown', keyDownHandler);
-    document.removeEventListener('keyup', keyUpHandler);
-    document.addEventListener('keydown', keyDownHandler);
-    document.addEventListener('keyup', keyUpHandler);
-  }
 }

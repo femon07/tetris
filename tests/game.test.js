@@ -118,15 +118,4 @@ describe('Event Handlers', () => {
       expect(gameStateManager.updateKeyState).toHaveBeenCalledWith('ArrowLeft', false);
     });
   });
-
-  describe('setupEventListeners', () => {
-    test('keydownとkeyupイベントリスナーを登録する', () => {      
-      setupEventListeners();
-
-      expect(removeEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function));
-      expect(removeEventListenerSpy).toHaveBeenCalledWith('keyup', expect.any(Function));
-      expect(addEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function));
-      expect(addEventListenerSpy).toHaveBeenCalledWith('keyup', expect.any(Function));
-    });
-  });
 });

@@ -1,4 +1,4 @@
-import { initGame, resetGame, gameState, draw, tetrisGame } from '../../src/game.js';
+import { initGame, resetGame, gameState, draw, setTetrisGame } from '../../src/game.js';
 import { Game } from '../../src/core/Game.js';
 import { GAME_CONSTANTS } from '../../src/constants/game.js';
 
@@ -107,50 +107,63 @@ describe('ゲーム初期化処理', () => {
   });
   
   describe('resetGame', () => {
-    test('ゲーム状態が正しくリセットされる', () => {
-      // 準備
-      const { canvas } = setupDOM();
+    let mockGameInstance;
+    let resetSpy;
+
+    beforeEach(() => {
+      // DOMをセットアップ
+      setupDOM();
+      // initGameを呼び出して tetrisGame を初期化
       initGame();
-      
-      // tetrisGame.resetをスパイ
-      const resetSpy = jest.spyOn(tetrisGame, 'reset');
-      
+
+      mockGameInstance = {
+        reset: jest.fn(),
+        isGameOver: false,
+        board: { clear: jest.fn() },
+        pieceManager: { reset: jest.fn() },
+        holdManager: { reset: jest.fn() },
+        renderer: { clear: jest.fn() },
+      };
+      // src/game.js 内の tetrisGame をモックインスタンスに設定
+      setTetrisGame(mockGameInstance);
+      resetSpy = jest.spyOn(mockGameInstance, 'reset');
+
       // テスト用にゲーム状態を変更
       gameState.score = 100;
       gameState.lines = 5;
       gameState.level = 2;
       gameState.isGameOver = true;
       gameState.paused = true;
-      
+
       // requestAnimationFrameをモック
       global.requestAnimationFrame = jest.fn(() => 456);
       global.cancelAnimationFrame = jest.fn();
-      
+
       // console.logをモック（初期化ログを抑制）
       jest.spyOn(console, 'log').mockImplementation(() => {});
-      
-      try {
-        // 実行
-        resetGame();
-        
-        // 検証
-        expect(resetSpy).toHaveBeenCalled();
-        expect(gameState.score).toBe(0);
-        expect(gameState.lines).toBe(0);
-        expect(gameState.level).toBe(1);
-        expect(gameState.isGameOver).toBe(false);
-        expect(gameState.paused).toBe(false);
-        
-        // UI更新の検証
-        expect(document.getElementById('score').textContent).toBe('0');
-        expect(document.getElementById('lines').textContent).toBe('0');
-        expect(document.getElementById('level').textContent).toBe('1');
-        
-      } finally {
-        // 後片付け
-        resetSpy.mockRestore();
-        document.body.removeChild(canvas);
-      }
+    });
+
+    afterEach(() => {
+      resetSpy.mockRestore();
+      // console.logのモックを解除
+      jest.restoreAllMocks();
+    });
+
+    test('ゲーム状態が正しくリセットされる', () => {
+      resetGame();
+
+      // 検証
+      expect(resetSpy).toHaveBeenCalled();
+      expect(gameState.score).toBe(0);
+      expect(gameState.lines).toBe(0);
+      expect(gameState.level).toBe(1);
+      expect(gameState.isGameOver).toBe(false);
+      expect(gameState.paused).toBe(false);
+
+      // UI更新の検証
+      expect(document.getElementById('score').textContent).toBe('0');
+      expect(document.getElementById('lines').textContent).toBe('0');
+      expect(document.getElementById('level').textContent).toBe('1');
     });
   });
 });

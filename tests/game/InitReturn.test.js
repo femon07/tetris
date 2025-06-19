@@ -57,8 +57,8 @@ describe('init関数の返り値', () => {
     delete global.mockCtx;
   });
 
-  test('返り値のキー一覧を確認する', () => {
-    const result = init();
+  test('返り値のキー一覧を確認する', async () => {
+    const result = await init();
     expect(result).not.toBeNull();
     const keys = Object.keys(result).sort();
     const expected = [
@@ -69,7 +69,7 @@ describe('init関数の返り値', () => {
 
       'initGame',
       'resetGame',
-      'setupEventListeners',
+
       'update',
     ].sort();
     expect(keys).toEqual(expected);

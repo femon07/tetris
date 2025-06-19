@@ -313,20 +313,8 @@ export function resetGame() {
   console.log('ゲームがリセットされました。');
 }
 
-function setupEventListeners(onKeyDown, onKeyUp) {
-  gameUI.setupEventListeners(onKeyDown, onKeyUp);
-  window.addEventListener('resize', () => {
-    const canvas = document.getElementById('game');
-    if (canvas) {
-      canvas.width = gameState.COLS * GAME_CONSTANTS.BLOCK_SIZE;
-      canvas.height = gameState.ROWS * GAME_CONSTANTS.BLOCK_SIZE;
-      draw();
-    }
-  });
-}
 
-// テスト用のsetupEventListeners関数をエクスポート
-export { setupEventListeners };
+
 
 export async function init() {
   try {
@@ -364,9 +352,12 @@ export async function init() {
     // ボードの初期化
     gameStateManager.initBoard();
     
-    // イベントリスナーの設定
-    console.log('イベントリスナーを設定します...');
-    setupEventListeners(gameUI.onKeyDown.bind(gameUI), gameUI.onKeyUp.bind(gameUI));
+    // InputControllerを初期化し、イベントリスナーを設定
+    console.log('InputControllerを初期化し、イベントリスナーを設定します...');
+    inputController = new InputController(gameApplication, gameLoop);
+    inputController.setupEventListeners(gameUI.onKeyDown.bind(gameUI), gameUI.onKeyUp.bind(gameUI));
+    inputController.initialize();
+
     
     // GameApplicationの初期化
     console.log('[game.js] GameApplicationを初期化します...');
@@ -429,7 +420,7 @@ export async function init() {
       gameState: gameStateManager.getState(),
       initGame: init,
       resetGame,
-      setupEventListeners: setupEventListeners.bind(null, gameUI.onKeyDown.bind(gameUI), gameUI.onKeyUp.bind(gameUI)),
+
       update,
       draw
     };
@@ -487,5 +478,6 @@ export function setTetrisGame(newGame) {
   tetrisGame = newGame;
 }
 
-const exports = { init, initGame, playerMove, playerRotate, playerDrop, playerHold, gameUI, gameState, gameStateManager, renderer, resetGame, update, setupEventListeners, draw };
-export default exports;
+
+
+
