@@ -14,9 +14,8 @@ import { WebGLPreviewRenderer } from './webgl/WebGLPreviewRenderer.js';
 import { WebGLGhost } from './webgl/WebGLGhost.js';
 import { HardDropEffect } from '../effects/HardDropEffect.js';
 
-// 宇宙テーマシステム
-import { SpaceThemeManager } from '../themes/space/SpaceThemeManager.js';
-import { EventManager } from '../event/EventManager.js';
+// テーマシステム
+import { WebGLThemeSystem } from './webgl/WebGLThemeSystem.js';
 
 /**
  * WebGL/Three.jsを使用する3Dレンダラー
@@ -61,10 +60,8 @@ export class WebGLRenderer extends BaseRenderer {
     this.ghost = null;
     this.hardDropEffect = null;
     
-    // 宇宙テーマシステム
-    this.spaceTheme = null;
-    this.themeEnabled = true;
-    this.eventManager = new EventManager();
+    // テーマシステム
+    this.themeSystem = null;
     
     // 状態管理
     this.frameCount = 0;
@@ -88,13 +85,11 @@ export class WebGLRenderer extends BaseRenderer {
       // 依存関係: レンダリングループは初期化されたサブシステムとThree.jsのレンダラーに依存する
       this.startRenderLoop();
       
-      // 非同期で宇宙テーマを初期化
-      this.initializeSpaceTheme().catch(error => {
-        console.error('[WebGLRenderer] 宇宙テーマ初期化失敗:', error);
-        this.themeEnabled = false;
+      // 非同期でテーマシステムを初期化
+      this.initializeThemeSystem().catch(error => {
+        console.error('[WebGLRenderer] テーマシステム初期化失敗:', error);
       });
       
-      console.log('[WebGLRenderer] 統合システム初期化完了');
       return true;
     } catch (error) {
       console.error('[WebGLRenderer] 初期化失敗:', error);
@@ -118,7 +113,6 @@ export class WebGLRenderer extends BaseRenderer {
       // 依存関係: レンダリングループは初期化されたサブシステムとThree.jsのレンダラーに依存する
       this.startRenderLoop();
       
-      console.log('[WebGLRenderer] 統合システム初期化完了');
       return true;
     } catch (error) {
       console.error('[WebGLRenderer] 初期化失敗:', error);
@@ -209,10 +203,6 @@ export class WebGLRenderer extends BaseRenderer {
     try {
       // HardDropEffectのコンストラクタはcameraが非同期に設定されるため、最初はnullを渡す
       this.hardDropEffect = new HardDropEffect(this.scene, this.particles, null);
-      console.log('[WebGLRenderer] HardDropEffect を初期化しました', {
-        hasScene: !!this.scene,
-        hasParticleSystem: !!this.particles
-      });
     } catch (error) {
       console.error('[WebGLRenderer] HardDropEffect の初期化に失敗しました:', error);
     }
@@ -263,35 +253,24 @@ export class WebGLRenderer extends BaseRenderer {
     try {
       // HardDropEffectのコンストラクタはcameraが非同期に設定されるため、最初はnullを渡す
       this.hardDropEffect = new HardDropEffect(this.scene, this.particles, null);
-      console.log('[WebGLRenderer] HardDropEffect を初期化しました', {
-        hasScene: !!this.scene,
-        hasParticleSystem: !!this.particles
-      });
     } catch (error) {
       console.error('[WebGLRenderer] HardDropEffect の初期化に失敗しました:', error);
     }
     
-    // 宇宙テーマシステムの初期化
-    await this.initializeSpaceTheme();
+    // テーマシステムの初期化
+    await this.initializeThemeSystem();
   }
 
   /**
-   * 宇宙テーマシステムを初期化
+   * テーマシステムを初期化
    */
-  async initializeSpaceTheme() {
-    if (!this.themeEnabled) return;
-    
+  async initializeThemeSystem() {
     try {
-      // WebGLCameraからTHREE.Cameraを取得
-      const threeCamera = this.camera.camera || this.camera;
-      this.spaceTheme = new SpaceThemeManager(this.scene, threeCamera, this.eventManager);
-      await this.spaceTheme.initialize();
-      
-      // 背景色を宇宙色に変更
-      this.scene.background = new THREE.Color(0x000011);
+      this.themeSystem = new WebGLThemeSystem(this.scene, this.camera);
+      await this.themeSystem.initialize();
     } catch (error) {
-      console.error('[WebGLRenderer] 宇宙テーマシステム初期化失敗:', error);
-      this.themeEnabled = false;
+      console.error('[WebGLRenderer] テーマシステム初期化失敗:', error);
+      throw error;
     }
   }
 
@@ -327,10 +306,10 @@ export class WebGLRenderer extends BaseRenderer {
     if (this.hardDropEffect) this.hardDropEffect.update();
     if (this.animations) this.animations.update();
     
-    // 宇宙テーマシステムの更新
-    if (this.spaceTheme && this.themeEnabled) {
+    // テーマシステムの更新
+    if (this.themeSystem) {
       const deltaTime = 1 / 60; // 60fps想定
-      this.spaceTheme.update(deltaTime);
+      this.themeSystem.update(deltaTime);
     }
     
     // Tweenアニメーションの更新
@@ -343,10 +322,6 @@ export class WebGLRenderer extends BaseRenderer {
   renderScene() {
     const camera = this.camera?.getCamera();
     if (!camera || !this.scene || !this.isBoardInitialized) {
-      if (performance.now() - (this.lastLogTime || 0) > 1000) {
-        console.log('[WebGLRenderer] 描画スキップ: 初期化待機中');
-        this.lastLogTime = performance.now();
-      }
       return;
     }
     
@@ -378,7 +353,6 @@ export class WebGLRenderer extends BaseRenderer {
    */
   render(gameData, nextPieceCanvas = null, holdPieceCanvas = null) {
     if (!gameData) {
-      console.warn('[WebGLRenderer] 描画スキップ: ゲームデータがありません');
       return;
     }
 
@@ -405,7 +379,6 @@ export class WebGLRenderer extends BaseRenderer {
       // ボード初期化フラグの更新
       if (gameData.boardGrid && !this.isBoardInitialized) {
         this.isBoardInitialized = true;
-        console.log('[WebGLRenderer] ボード初期化完了');
       }
       
     } catch (error) {
@@ -445,14 +418,12 @@ export class WebGLRenderer extends BaseRenderer {
    */
   createHardDropEffect(piece, startPos, endPos, dropDistance) {
     if (!this.hardDropEffect) {
-      console.warn('hardDropEffectが初期化されていません');
       return;
     }
 
     try {
       this.hardDropEffect.createHardDropEffect(piece, startPos, endPos, dropDistance);
     } catch (error) {
-      console.error('ハードドロップエフェクトの作成中にエラーが発生しました:', error);
     }
   }
 
@@ -497,19 +468,54 @@ export class WebGLRenderer extends BaseRenderer {
         animations: this.animations?.getStats() || {},
         preview: this.previewRenderer?.getStats() || {},
         ghost: this.ghost?.getStats() || {},
-        hardDropEffect: this.hardDropEffect?.getStats() || {}
+        hardDropEffect: this.hardDropEffect?.getStats() || {},
+        themeSystem: this.themeSystem?.getThemeInfo() || {}
       }
     };
+  }
+
+  /**
+   * テーマを切り替え
+   */
+  async switchTheme(themeId) {
+    if (this.themeSystem) {
+      return await this.themeSystem.switchTheme(themeId);
+    }
+  }
+
+  /**
+   * 現在のテーマIDを取得
+   */
+  getCurrentThemeId() {
+    return this.themeSystem ? this.themeSystem.getCurrentThemeId() : null;
+  }
+
+  /**
+   * テーマ変更リスナーを追加
+   */
+  addThemeChangeListener(listener) {
+    if (this.themeSystem) {
+      this.themeSystem.addThemeChangeListener(listener);
+    }
+  }
+
+  /**
+   * テーマ変更リスナーを削除
+   */
+  removeThemeChangeListener(listener) {
+    if (this.themeSystem) {
+      this.themeSystem.removeThemeChangeListener(listener);
+    }
   }
 
   /**
    * 統合リソース解放
    */
   dispose() {
-    // 宇宙テーマシステムの解放
-    if (this.spaceTheme) {
-      this.spaceTheme.dispose();
-      this.spaceTheme = null;
+    // テーマシステムの解放
+    if (this.themeSystem) {
+      this.themeSystem.dispose();
+      this.themeSystem = null;
     }
     
     // サブシステムの解放

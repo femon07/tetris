@@ -10,6 +10,7 @@ const KEY_CODES = {
   SHIFT_RIGHT: 'ShiftRight',
   KEY_R: 'KeyR',
   KEY_P: 'KeyP',
+  KEY_T: 'KeyT',
 };
 
 export class InputController {
@@ -40,6 +41,7 @@ export class InputController {
     this.keyHandlers.set(KEY_CODES.SHIFT_RIGHT, () => this.handleHold());
     this.keyHandlers.set(KEY_CODES.KEY_R, () => this.handleReset());
     this.keyHandlers.set(KEY_CODES.KEY_P, () => this.handlePause());
+    this.keyHandlers.set(KEY_CODES.KEY_T, () => this.handleThemeToggle());
 
   }
 
@@ -51,18 +53,13 @@ export class InputController {
    */
   initialize() {
     if (this.isInitialized) {
-      console.warn('[InputController] 既に初期化済みです');
       return;
     }
 
-    console.log('[InputController] 入力コントローラーを初期化します');
     // InputController自身のonKeyDown/onKeyUpを登録するのではなく、外部から渡されたハンドラーを登録する
     // ここではまだ登録しない。game.jsのinitでGameUIのハンドラーを渡して登録する。
     this.isInitialized = true;
-    console.log('[InputController] 入力コントローラーの初期化が完了しました');
     
-    // デバッグ用に登録済みキーハンドラーを出力
-    this.logRegisteredKeyHandlers();
 
     // 入力の監視を開始
     this.startListening();
@@ -75,7 +72,6 @@ export class InputController {
    * @returns {void}
    */
   setupEventListeners(onKeyDownHandler, onKeyUpHandler) {
-    console.log('[InputController] イベントリスナーを設定します');
     
     // 既存のリスナーをクリーンアップ
     this.removeEventListeners();
@@ -90,7 +86,6 @@ export class InputController {
     // キーアップイベント
     document.addEventListener('keyup', this.boundOnKeyUp);
     
-    console.log('[InputController] イベントリスナーの設定が完了しました');
   }
 
   removeEventListeners() {
@@ -107,14 +102,11 @@ export class InputController {
 
   startListening() {
     if (this.isListening) {
-      console.log('[InputController] 既にリスニング中です');
       return;
     }
 
-    console.log('[InputController] 入力の監視を開始します');
 
     this.isListening = true;
-    console.log('[InputController] 入力の監視を開始しました');
   }
 
   stopListening() {
@@ -129,7 +121,6 @@ export class InputController {
     if (this.boundOnKeyUp) {
       document.removeEventListener('keyup', this.boundOnKeyUp);
     }
-    console.log('InputController stopped listening');
   }
 
   onKeyDown(event) {
@@ -200,7 +191,6 @@ export class InputController {
     const renderer = this.gameApplication.getRenderer();
     
     if (!this.gameApplication.isRunning()) {
-      console.warn('[InputController] ゲームが実行中ではありません');
       return;
     }
     
@@ -208,7 +198,6 @@ export class InputController {
     const piece = game.piece;
     
     if (!piece) {
-      console.warn('[InputController] アクティブなピースがありません');
       return;
     }
 
@@ -222,7 +211,6 @@ export class InputController {
     // ゴーストピースの位置を取得して最終位置を計算
     const ghostPos = game.ghostPiecePosition;
     if (!ghostPos) {
-      console.warn('[InputController] ゴーストピース位置が取得できません');
       return;
     }
 
@@ -288,13 +276,27 @@ export class InputController {
       if (this.gameLoop) {
         this.gameLoop.resume();
       }
-      console.log('Game resumed');
     } else {
       stateManager.setPaused(true);
       if (this.gameLoop) {
         this.gameLoop.pause();
       }
-      console.log('Game paused');
+    }
+  }
+
+  handleThemeToggle() {
+    // WebGLレンダラーのテーマ切り替え機能を呼び出し
+    const renderer = this.gameApplication.getRenderer();
+    if (renderer && renderer.rendererType === 'webgl' && typeof renderer.getCurrentThemeId === 'function') {
+      try {
+        const currentTheme = renderer.getCurrentThemeId();
+        const nextTheme = currentTheme === 'space' ? 'classic' : 'space';
+        renderer.switchTheme(nextTheme).catch(error => {
+          console.error('[InputController] テーマ切り替えエラー:', error);
+        });
+      } catch (error) {
+        console.error('[InputController] テーマ切り替えエラー:', error);
+      }
     }
   }
 
@@ -306,7 +308,6 @@ export class InputController {
   // カスタムキーハンドラーの追加
   addKeyHandler(key, handler) {
     if (this.keyHandlers.has(key)) {
-      console.warn(`[InputController] キーハンドラー "${key}" は既に登録されています。上書きします。`);
     }
     this.keyHandlers.set(key, handler);
   }
@@ -316,17 +317,6 @@ export class InputController {
     this.keyHandlers.delete(key);
   }
 
-  // デバッグ用: 登録済みキーハンドラーの一覧を出力
-  logRegisteredKeyHandlers() {
-    console.log('[InputController] 登録済みキーハンドラー一覧:');
-    if (this.keyHandlers.size === 0) {
-      console.log('  なし');
-      return;
-    }
-    this.keyHandlers.forEach((handler, key) => {
-      console.log(`  Key: ${key}`);
-    });
-  }
 
   // クリーンアップ
   destroy() {

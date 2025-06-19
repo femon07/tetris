@@ -3,6 +3,7 @@ import { RendererFactory } from '../rendering/RendererFactory.js';
 import { GameStateManager } from '../state/GameStateManager.js';
 import { GAME_CONSTANTS } from '../constants/game.js';
 import { InputController } from './InputController.js';
+import { ThemeSelector } from '../ui/ThemeSelector.js';
 
 export class GameApplication {
   constructor(renderer) {
@@ -10,13 +11,12 @@ export class GameApplication {
     this.gameStateManager = new GameStateManager(GAME_CONSTANTS.ROWS, GAME_CONSTANTS.COLS);
     this.renderer = renderer;
     this.inputController = null;
+    this.themeSelector = null;
     this.isInitialized = false;
   }
 
   async initialize() {
     try {
-      console.log('--- GameApplication.initialize が呼び出されました ---');
-      console.log('[GameApplication] 初期化を開始します');
       
       // キャンバス要素の取得
       const canvas = document.getElementById('game');
@@ -24,14 +24,18 @@ export class GameApplication {
         throw new Error('Canvas要素が見つかりません');
       }
 
-      console.log('[GameApplication] ゲーム状態を初期化します');
       // ゲーム状態の初期化
       this.gameStateManager.initBoard();
 
-      console.log('[GameApplication] 入力コントローラーの初期化が完了しました');
+
+      // テーマセレクターを初期化（WebGLレンダラーの場合のみ）
+      if (this.renderer && this.renderer.rendererType === 'webgl') {
+        this.themeSelector = new ThemeSelector('game-info-panel', async (themeId) => {
+          await this.renderer.switchTheme(themeId);
+        });
+      }
 
       this.isInitialized = true;
-      console.log('[GameApplication] 初期化が完了しました');
       
       return true;
     } catch (error) {
@@ -56,7 +60,6 @@ export class GameApplication {
     // 状態を同期
     this.syncGameState();
     
-    console.log('Game reset successfully');
   }
 
   syncGameState() {

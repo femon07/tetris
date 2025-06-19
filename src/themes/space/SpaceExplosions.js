@@ -60,10 +60,6 @@ export class SpaceExplosions {
     this.createExplosionPool();
     this.createShockwavePool();
     
-    console.log('[SpaceExplosions] 爆発エフェクトシステム初期化完了:', {
-      maxExplosions: this.maxExplosions,
-      types: Object.keys(this.explosionTypes).length
-    });
   }
 
   /**
@@ -273,7 +269,6 @@ export class SpaceExplosions {
     } = config;
     
     if (!this.explosionTypes[type]) {
-      console.warn('[SpaceExplosions] 不明な爆発タイプ:', type);
       return;
     }
     
@@ -430,7 +425,6 @@ export class SpaceExplosions {
         this.createShockwave(new THREE.Vector3(0, 0, 0), 8 + i * 2);
       }, i * 200);
     }
-    
   }
 
   /**
@@ -445,7 +439,6 @@ export class SpaceExplosions {
     this.shockwavePool.forEach(shockwave => {
       shockwave.visible = false;
     });
-    
   }
 
   /**
@@ -562,6 +555,5 @@ export class SpaceExplosions {
     this.explosionPool = [];
     this.shockwavePool = [];
     
-    console.log('[SpaceExplosions] リソース解放完了');
   }
 }

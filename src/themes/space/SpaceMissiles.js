@@ -36,10 +36,6 @@ export class SpaceMissiles {
   initialize() {
     this.createMissilePool();
     
-    console.log('[SpaceMissiles] ミサイルシステム初期化完了:', {
-      maxMissiles: this.maxMissiles,
-      types: Object.keys(this.missileTypes).length
-    });
   }
 
   /**
@@ -138,7 +134,6 @@ export class SpaceMissiles {
     const { type = 'laser', target, power = 50 } = config;
     
     if (!this.missileTypes[type]) {
-      console.warn('[SpaceMissiles] 不明なミサイルタイプ:', type);
       return;
     }
     
@@ -234,7 +229,6 @@ export class SpaceMissiles {
       missile.userData.lifeTime = 0;
     });
     this.missiles = [];
-    
   }
 
   /**
@@ -330,6 +324,5 @@ export class SpaceMissiles {
     
     this.missilePool = [];
     
-    console.log('[SpaceMissiles] リソース解放完了');
   }
 }

@@ -71,10 +71,6 @@ export class SpaceThemeManager {
       
       this.isActive = true;
       
-      console.log('[SpaceThemeManager] 宇宙テーマ初期化完了:', {
-        components: 6,
-        level: this.currentLevel
-      });
       
     } catch (error) {
       console.error('[SpaceThemeManager] 初期化エラー:', error);
@@ -109,7 +105,7 @@ export class SpaceThemeManager {
         try {
           handler(data);
         } catch (error) {
-          console.error(`[SpaceThemeManager] エラー in ${eventType} handler:`, error);
+          console.error(`[SpaceThemeManager] Error in ${eventType} handler:`, error);
         }
       });
     }
@@ -329,7 +325,6 @@ export class SpaceThemeManager {
     
     // レベルアップ演出
     this.triggerLevelUpEffect(newLevel);
-    
   }
 
   /**
@@ -373,7 +368,6 @@ export class SpaceThemeManager {
     if (this.enemyFleet) this.enemyFleet.clearAllEnemies();
     if (this.spaceExplosions) this.spaceExplosions.clearAllExplosions();
     if (this.spaceBackground) this.spaceBackground.updateLevel(1);
-    
   }
 
   /**
@@ -443,6 +437,5 @@ export class SpaceThemeManager {
     if (this.spaceExplosions) this.spaceExplosions.dispose();
     if (this.spaceStations) this.spaceStations.dispose();
     
-    console.log('[SpaceThemeManager] リソース解放完了');
   }
 }

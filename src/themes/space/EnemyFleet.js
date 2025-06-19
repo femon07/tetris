@@ -63,10 +63,6 @@ export class EnemyFleet {
   initialize() {
     this.createEnemyPool();
     
-    console.log('[EnemyFleet] 敵艦隊システム初期化完了:', {
-      maxEnemies: this.maxEnemies,
-      types: Object.keys(this.enemyTypes).length
-    });
   }
 
   /**
@@ -147,7 +143,6 @@ export class EnemyFleet {
     const { type = 'light_fighter', aggressiveness = 0.5 } = config;
     
     if (!this.enemyTypes[type]) {
-      console.warn('[EnemyFleet] 不明な敵機タイプ:', type);
       return;
     }
     
@@ -289,7 +284,6 @@ export class EnemyFleet {
       enemy.userData.health = 0;
     });
     this.enemies = [];
-    
   }
 
   /**
@@ -499,6 +493,5 @@ export class EnemyFleet {
     
     this.enemyPool = [];
     
-    console.log('[EnemyFleet] リソース解放完了');
   }
 }

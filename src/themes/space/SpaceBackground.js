@@ -43,10 +43,6 @@ export class SpaceBackground {
     this.createNebula();
     this.updateSceneBackground();
     
-    console.log('[SpaceBackground] 宇宙背景初期化完了:', {
-      stars: this.starCount,
-      level: this.currentLevel
-    });
   }
 
   /**
@@ -134,7 +130,7 @@ export class SpaceBackground {
    */
   createNebula() {
     const nebulaRadius = 300;
-    const nebulaGeometry = new THREE.SphereGeometry(nebulaRadius, 32, 32);
+    this.nebulaGeometry = new THREE.SphereGeometry(nebulaRadius, 32, 32);
     
     // 星雲用シェーダーマテリアル
     this.nebulaMaterial = new THREE.ShaderMaterial({
@@ -182,7 +178,7 @@ export class SpaceBackground {
       side: THREE.BackSide
     });
     
-    this.nebula = new THREE.Mesh(nebulaGeometry, this.nebulaMaterial);
+    this.nebula = new THREE.Mesh(this.nebulaGeometry, this.nebulaMaterial);
     this.scene.add(this.nebula);
   }
 
@@ -261,16 +257,15 @@ export class SpaceBackground {
   dispose() {
     if (this.starField) {
       this.scene.remove(this.starField);
-      this.starGeometry.dispose();
-      this.starMaterial.dispose();
+      if (this.starGeometry) this.starGeometry.dispose();
+      if (this.starMaterial) this.starMaterial.dispose();
     }
     
     if (this.nebula) {
       this.scene.remove(this.nebula);
-      this.nebulaGeometry.dispose();
-      this.nebulaMaterial.dispose();
+      if (this.nebulaGeometry) this.nebulaGeometry.dispose();
+      if (this.nebulaMaterial) this.nebulaMaterial.dispose();
     }
     
-    console.log('[SpaceBackground] リソース解放完了');
   }
 }

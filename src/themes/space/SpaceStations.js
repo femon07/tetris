@@ -46,10 +46,6 @@ export class SpaceStations {
   initialize() {
     this.createInitialStation();
     
-    console.log('[SpaceStations] 宇宙ステーションシステム初期化完了:', {
-      level: this.currentLevel,
-      position: this.position
-    });
   }
 
   /**
@@ -417,7 +413,6 @@ export class SpaceStations {
     setTimeout(() => {
       this.updateStationForLevel(newLevel);
     }, 1000);
-    
   }
 
   /**
@@ -595,6 +590,5 @@ export class SpaceStations {
       antennas: []
     };
     
-    console.log('[SpaceStations] リソース解放完了');
   }
 }
