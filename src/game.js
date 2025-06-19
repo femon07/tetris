@@ -1,7 +1,7 @@
 import { Game } from './core/Game.js';
 import { GAME_CONSTANTS } from './constants/game.js';
 import GameUI from "./ui/GameUI.js";
-import { Renderer } from './rendering/Renderer.js';
+import { RendererFactory } from './rendering/RendererFactory.js';
 import { GameStateManager } from './state/GameStateManager.js';
 
 // --- グローバル変数と状態管理 ---
@@ -274,7 +274,7 @@ export const gameUI = new GameUI(gameState, {
   holdPiece: playerHold,
   resetGame,
   update,
-  getDropInterval: () => tetrisGame.getDropInterval(),
+  getDropInterval: () => tetrisGame.dropInterval,
   startSoftDrop: () => tetrisGame.startSoftDrop(),
   stopSoftDrop: () => tetrisGame.stopSoftDrop(),
 }, gameStateManager);
@@ -336,7 +336,7 @@ export function init() {
     
     // レンダラーの初期化
     const { COLORS, BLOCK_SIZE } = GAME_CONSTANTS;
-    renderer = new Renderer(canvas, COLORS, BLOCK_SIZE);
+    renderer = RendererFactory.createAutoRenderer(canvas, COLORS, BLOCK_SIZE);
     
     // キャンバスのサイズ設定
     const state = gameStateManager.getState();
