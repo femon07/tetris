@@ -42,12 +42,19 @@ function draw() {
   
   try {
     const state = gameStateManager.getState();
+    const ghostPiece = tetrisGame ? tetrisGame.ghostPiecePosition : null;
     const gameData = {
       boardGrid: tetrisGame && tetrisGame.board ? tetrisGame.board.grid : null,
       piece: state.piece,
       nextPiece: state.nextPiece,
-      holdPiece: state.holdPiece
+      holdPiece: state.holdPiece,
+      ghostPiece: ghostPiece
     };
+    
+    // デバッグログ
+    if (ghostPiece) {
+      console.log('[game.js] ゴーストピースあり:', ghostPiece);
+    }
     
     const nextPieceCanvas = document.getElementById('next-piece-canvas');
     const holdPieceCanvas = document.getElementById('hold-piece-canvas');

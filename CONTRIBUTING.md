@@ -2,19 +2,38 @@
 
 ## 計画書の管理
 
-- 進行中の計画書: `planning/` ディレクトリに配置
-- 完了した計画書: `planning/finished/` ディレクトリに移動
+プロジェクトの計画書は以下のディレクトリ構造で管理されています：
 
-## 現在の実装
+```
+planning/
+├── active/           # 実装中の計画書
+├── completed/        # 完了済みの計画書  
+└── candidates/       # 将来実装候補の計画書
+```
 
-### 進行中
-- [WebGLレンダラーの実装](./planning/WEBGL_RENDERER_PLAN.md)
+## 現在の実装状況
 
-### 完了済み
+### 🚧 実装中
+- [ゲームプレイ機能拡張](./planning/active/GAMEPLAY_ENHANCEMENT_PLAN.md)
+  - ✅ ゴースト表示機能 (完了)
+  - 🔄 ハードドロップエフェクト (次回実装)
+  - 📋 コンボシステム (計画中)
+
+### ✅ 完了済み
+- [WebGL 3Dレンダラー](./planning/completed/WEBGL_RENDERER_PLAN.md) (Phase 1-4完了)
 - 基本ゲームロジック
-- スコア計算
-- レベルアップ機能
-- キーボード操作
+- スコア計算・レベルアップ機能
+- キーボード操作・UI
+- パーティクルエフェクト・ライティング
+- Next/Holdピース表示
+- カメラ最適化
+
+### 📋 検討候補
+- [次期開発方針](./planning/candidates/NEXT_DEVELOPMENT_PLAN.md)
+  - UI/UX改善・設定システム
+  - 高度3Dビジュアル
+  - モード・バリエーション追加
+  - パフォーマンス最適化
 
 ## 開発手順
 

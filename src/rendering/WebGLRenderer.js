@@ -11,6 +11,7 @@ import { WebGLBlocks } from './webgl/WebGLBlocks.js';
 import { WebGLDrawing } from './webgl/WebGLDrawing.js';
 import { WebGLAnimations } from './webgl/WebGLAnimations.js';
 import { WebGLPreviewRenderer } from './webgl/WebGLPreviewRenderer.js';
+import { WebGLGhost } from './webgl/WebGLGhost.js';
 
 /**
  * WebGL/Three.jsを使用する3Dレンダラー
@@ -52,6 +53,7 @@ export class WebGLRenderer extends BaseRenderer {
     this.drawing = null;
     this.animations = null;
     this.previewRenderer = null;
+    this.ghost = null;
     
     // 状態管理
     this.frameCount = 0;
@@ -152,6 +154,9 @@ export class WebGLRenderer extends BaseRenderer {
     
     // プレビューレンダラー
     this.previewRenderer = new WebGLPreviewRenderer(this.blocks);
+    
+    // ゴーストレンダラー
+    this.ghost = new WebGLGhost(this.scene, this.blocks);
   }
 
   /**
@@ -229,6 +234,13 @@ export class WebGLRenderer extends BaseRenderer {
     try {
       // 描画システムに委譲
       this.drawing.renderAll(gameData, this.groups);
+      
+      // ゴーストピース描画
+      if (gameData.ghostPiece) {
+        this.ghost.drawGhost(gameData.ghostPiece);
+      } else {
+        this.ghost.clearGhost();
+      }
       
       // Next/Holdピースを3Dキャンバスに描画
       if (nextPieceCanvas && gameData.nextPiece) {
@@ -312,7 +324,8 @@ export class WebGLRenderer extends BaseRenderer {
         blocks: this.blocks?.getStats() || {},
         drawing: this.drawing?.getStats() || {},
         animations: this.animations?.getStats() || {},
-        preview: this.previewRenderer?.getStats() || {}
+        preview: this.previewRenderer?.getStats() || {},
+        ghost: this.ghost?.getStats() || {}
       }
     };
   }
@@ -322,6 +335,7 @@ export class WebGLRenderer extends BaseRenderer {
    */
   dispose() {
     // サブシステムの解放
+    if (this.ghost) this.ghost.dispose();
     if (this.previewRenderer) this.previewRenderer.dispose();
     if (this.animations) this.animations.dispose();
     if (this.drawing) this.drawing.dispose();

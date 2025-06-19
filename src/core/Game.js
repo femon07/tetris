@@ -2,6 +2,7 @@ import { Board } from './Board.js';
 import { GameStatistics } from './GameStateManager.js';
 import { PieceManager } from './PieceManager.js';
 import { HoldManager } from './HoldManager.js';
+import { GhostPiece } from './GhostPiece.js';
 
 
 export class Game {
@@ -10,6 +11,7 @@ export class Game {
     this.gameState = new GameStatistics();
     this.pieceManager = new PieceManager(cols, rows);
     this.holdManager = new HoldManager(this.pieceManager);
+    this.ghostPiece = new GhostPiece();
     
     this.renderer = renderer;
     this.reset();
@@ -55,6 +57,29 @@ export class Game {
     return this.holdManager.canHoldPiece();
   }
 
+  get ghostPiecePosition() {
+    const currentPiece = this.pieceManager.getCurrentPiece();
+    if (!currentPiece) return null;
+    
+    // GhostPieceクラスの内部衝突判定を使用
+    const ghostPos = this.ghostPiece.calculateGhostPosition(
+      currentPiece,
+      this.board.grid,
+      null // 内部衝突判定を使用
+    );
+    
+    // デバッグログ追加
+    if (ghostPos) {
+      console.log('[Game] ゴースト位置計算完了:', {
+        current: currentPiece.pos,
+        ghost: ghostPos.pos,
+        matrix: ghostPos.matrix.length
+      });
+    }
+    
+    return ghostPos;
+  }
+
   startSoftDrop() {
     this.gameState.startSoftDrop();
   }
@@ -68,6 +93,7 @@ export class Game {
     this.gameState.reset();
     this.pieceManager.reset();
     this.holdManager.reset();
+    this.ghostPiece.clear();
   }
   
   
