@@ -5,6 +5,7 @@ export class InputController {
     this.keyStates = new Map();
     this.keyHandlers = new Map();
     this.isListening = false;
+    this.isInitialized = false;
     
     this.setupKeyHandlers();
   }
@@ -15,23 +16,69 @@ export class InputController {
     this.keyHandlers.set('ArrowRight', () => this.handleMove(1));
     this.keyHandlers.set('ArrowUp', () => this.handleRotate(1));
     this.keyHandlers.set('ArrowDown', () => this.handleSoftDrop(true));
-    this.keyHandlers.set(' ', () => this.handleHardDrop());
+    this.keyHandlers.set('Space', () => this.handleHardDrop());
     this.keyHandlers.set('KeyC', () => this.handleHold());
     this.keyHandlers.set('ShiftLeft', () => this.handleHold());
     this.keyHandlers.set('ShiftRight', () => this.handleHold());
     this.keyHandlers.set('KeyR', () => this.handleReset());
     this.keyHandlers.set('KeyP', () => this.handlePause());
+
+  }
+
+  initialize() {
+    if (this.isInitialized) {
+      console.warn('[InputController] 既に初期化済みです');
+      return;
+    }
+
+    console.log('[InputController] 入力コントローラーを初期化します');
+    this.setupEventListeners();
+    this.isInitialized = true;
+    console.log('[InputController] 入力コントローラーの初期化が完了しました');
+    
+    // 入力の監視を開始
+    this.startListening();
+  }
+
+  setupEventListeners() {
+    console.log('[InputController] イベントリスナーを設定します');
+    
+    // 既存のイベントリスナーを削除
+    this.removeEventListeners();
+
+    // キーダウンイベント
+    this.handleKeyDownBound = this.onKeyDown.bind(this);
+    document.addEventListener('keydown', this.handleKeyDownBound);
+
+    // キーアップイベント
+    this.handleKeyUpBound = this.onKeyUp.bind(this);
+    document.addEventListener('keyup', this.handleKeyUpBound);
+    
+    console.log('[InputController] イベントリスナーの設定が完了しました');
+  }
+
+  removeEventListeners() {
+    if (this.handleKeyDownBound) {
+      document.removeEventListener('keydown', this.handleKeyDownBound);
+      this.handleKeyDownBound = null;
+    }
+    
+    if (this.handleKeyUpBound) {
+      document.removeEventListener('keyup', this.handleKeyUpBound);
+      this.handleKeyUpBound = null;
+    }
   }
 
   startListening() {
     if (this.isListening) {
+      console.log('[InputController] 既にリスニング中です');
       return;
     }
 
+    console.log('[InputController] 入力の監視を開始します');
+    this.setupEventListeners();
     this.isListening = true;
-    document.addEventListener('keydown', this.onKeyDown.bind(this));
-    document.addEventListener('keyup', this.onKeyUp.bind(this));
-    console.log('InputController started listening');
+    console.log('[InputController] 入力の監視を開始しました');
   }
 
   stopListening() {
@@ -46,9 +93,9 @@ export class InputController {
   }
 
   onKeyDown(event) {
+    const key = event.code || event.key;
+
     try {
-      const key = event.code || event.key;
-      
       // キーリピートを防ぐ
       if (event.repeat || this.keyStates.get(key)) {
         return;
@@ -68,7 +115,7 @@ export class InputController {
         handler();
       }
     } catch (error) {
-      console.error('Error in onKeyDown:', error);
+      console.error('[InputController] onKeyDown でエラーが発生しました:', error);
     }
   }
 
@@ -109,23 +156,71 @@ export class InputController {
   }
 
   handleHardDrop() {
-    if (!this.gameApplication.isRunning()) return;
+
+    const renderer = this.gameApplication.getRenderer();
+    
+    if (!this.gameApplication.isRunning()) {
+      console.warn('[InputController] ゲームが実行中ではありません');
+      return;
+    }
     
     const game = this.gameApplication.game;
     const piece = game.piece;
     
-    if (!piece) return;
+    if (!piece) {
+      console.warn('[InputController] アクティブなピースがありません');
+      return;
+    }
+
+    // ハードドロップ開始位置を記録
+    const startPos = {
+      x: piece.pos.x,
+      y: piece.pos.y,
+      z: 0
+    };
+
+    // ゴーストピースの位置を取得して最終位置を計算
+    const ghostPos = game.ghostPiecePosition;
+    if (!ghostPos) {
+      console.warn('[InputController] ゴーストピース位置が取得できません');
+      return;
+    }
+
+    const endPos = {
+      x: ghostPos.pos.x,
+      y: ghostPos.pos.y,
+      z: 0
+    };
+
+    const dropDistance = endPos.y - startPos.y;
+
+    // エフェクトを先に呼び出し（ピースが配置される前）
+    if (dropDistance > 0) {
+      const renderer = this.gameApplication.getRenderer();
+      
+      if (renderer && typeof renderer.createHardDropEffect === 'function') {
+        // ピースのコピーを作成してエフェクトに渡す
+        const pieceForEffect = {
+          matrix: piece.matrix,
+          pos: { ...piece.pos },
+          type: piece.type
+        };
+    
+        renderer.createHardDropEffect(pieceForEffect, startPos, endPos, dropDistance);
+    
+      }
+    }
 
     // ハードドロップ: ピースを最下部まで移動
-    let dropDistance = 0;
+    let actualDropDistance = 0;
     while (game.dropPiece()) {
-      dropDistance++;
+      actualDropDistance++;
     }
 
     // ハードドロップのスコアを追加
-    if (dropDistance > 0) {
-      const hardDropScore = game.scoreCalculator.calculateHardDropScore(dropDistance);
-      game.score += hardDropScore;
+    if (actualDropDistance > 0) {
+      const hardDropScore = game.gameState.scoreCalculator.calculateHardDropScore(actualDropDistance);
+      game.gameState.score += hardDropScore;
       this.gameApplication.syncGameState();
     }
   }
