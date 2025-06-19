@@ -47,7 +47,7 @@ export class Board {
       return 0;
     }
     
-    let cleared = 0;
+    const clearedRows = [];
     const newGrid = [];
     
     for (let y = 0; y < this.grid.length; y++) {
@@ -59,7 +59,7 @@ export class Board {
       
       try {
         if (row.every(cell => cell !== 0)) {
-          cleared++;
+          clearedRows.push(y); // クリアされた行のインデックスを記録
         } else {
           newGrid.push([...row]); // 行のコピーを作成して参照を避ける
         }
@@ -75,6 +75,6 @@ export class Board {
     }
     
     this.grid = newGrid;
-    return cleared;
+    return clearedRows;
   }
 }

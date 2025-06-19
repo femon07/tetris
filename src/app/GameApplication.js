@@ -1,5 +1,5 @@
 import { Game } from '../core/Game.js';
-import { Renderer } from '../rendering/Renderer.js';
+import { RendererFactory } from '../rendering/RendererFactory.js';
 import { GameStateManager } from '../state/GameStateManager.js';
 import { GAME_CONSTANTS } from '../constants/game.js';
 
@@ -26,7 +26,7 @@ export class GameApplication {
 
       // レンダラーの初期化
       const { COLORS, BLOCK_SIZE } = GAME_CONSTANTS;
-      this.renderer = new Renderer(canvas, COLORS, BLOCK_SIZE);
+      this.renderer = RendererFactory.createAutoRenderer(canvas, COLORS, BLOCK_SIZE);
 
       // キャンバスのサイズ設定
       const state = this.gameStateManager.getState();

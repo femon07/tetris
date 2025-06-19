@@ -2,15 +2,18 @@ import { Board } from './Board.js';
 import { GameStatistics } from './GameStateManager.js';
 import { PieceManager } from './PieceManager.js';
 import { HoldManager } from './HoldManager.js';
+import { GhostPiece } from './GhostPiece.js';
 
 
 export class Game {
-  constructor(cols = 10, rows = 20) {
+  constructor(cols = 10, rows = 20, renderer) {
     this.board = new Board(cols, rows);
     this.gameState = new GameStatistics();
     this.pieceManager = new PieceManager(cols, rows);
     this.holdManager = new HoldManager(this.pieceManager);
+    this.ghostPiece = new GhostPiece();
     
+    this.renderer = renderer;
     this.reset();
   }
 
@@ -54,6 +57,29 @@ export class Game {
     return this.holdManager.canHoldPiece();
   }
 
+  get ghostPiecePosition() {
+    const currentPiece = this.pieceManager.getCurrentPiece();
+    if (!currentPiece) return null;
+    
+    // GhostPieceクラスの内部衝突判定を使用
+    const ghostPos = this.ghostPiece.calculateGhostPosition(
+      currentPiece,
+      this.board.grid,
+      null // 内部衝突判定を使用
+    );
+    
+    // デバッグログ追加
+    if (ghostPos) {
+      console.log('[Game] ゴースト位置計算完了:', {
+        current: currentPiece.pos,
+        ghost: ghostPos.pos,
+        matrix: ghostPos.matrix.length
+      });
+    }
+    
+    return ghostPos;
+  }
+
   startSoftDrop() {
     this.gameState.startSoftDrop();
   }
@@ -67,6 +93,7 @@ export class Game {
     this.gameState.reset();
     this.pieceManager.reset();
     this.holdManager.reset();
+    this.ghostPiece.clear();
   }
   
   
@@ -151,11 +178,21 @@ export class Game {
     const dropped = this.pieceManager.dropPiece(() => this.hasCollision());
     
     if (!dropped) {
+      // ピース配置エフェクトを先に実行
+      const currentPiece = this.pieceManager.getCurrentPiece();
+      if (this.renderer && typeof this.renderer.createPiecePlacementEffect === 'function') {
+        this.renderer.createPiecePlacementEffect(currentPiece);
+      }
+      
       this.mergePiece();
       
-      const linesCleared = this.board.clearLines();
-      if (linesCleared > 0) {
-        this.gameState.addLines(linesCleared);
+      const clearedLines = this.board.clearLines(); // クリアされた行のインデックス配列を取得
+      if (clearedLines.length > 0) {
+        this.gameState.addLines(clearedLines.length);
+        // レンダラーにライン消去アニメーションを通知
+        if (this.renderer && typeof this.renderer.clearLinesAnimation === 'function') {
+          this.renderer.clearLinesAnimation(clearedLines);
+        }
       }
       
       this.spawnPiece();
