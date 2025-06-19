@@ -1,6 +1,7 @@
 {
   "name": "tetris",
   "version": "1.0.0",
+  "type": "module",
   "homepage": "https://femon07.github.io/tetris",
   "description": "A modern Tetris game with clean architecture and testable design",
   "scripts": {
