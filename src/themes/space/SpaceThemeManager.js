@@ -86,25 +86,42 @@ export class SpaceThemeManager {
    * イベントリスナーを設定
    */
   setupEventListeners() {
-    // ライン消去イベント
-    this.eventManager.on('linesCleared', (data) => {
-      this.handleLinesCleared(data);
-    });
-    
-    // レベルアップイベント
-    this.eventManager.on('levelUp', (data) => {
-      this.handleLevelUp(data);
-    });
-    
-    // ゲームリセットイベント
-    this.eventManager.on('gameReset', () => {
-      this.handleGameReset();
-    });
-    
-    // ピース配置イベント
-    this.eventManager.on('piecePlaced', (data) => {
-      this.handlePiecePlaced(data);
-    });
+    // 現在のEventManagerはDOM イベント用なので、カスタムイベントシステムを構築
+    this.customEvents = new Map();
+  }
+
+  /**
+   * カスタムイベントを登録
+   */
+  on(eventType, handler) {
+    if (!this.customEvents.has(eventType)) {
+      this.customEvents.set(eventType, new Set());
+    }
+    this.customEvents.get(eventType).add(handler);
+  }
+
+  /**
+   * カスタムイベントを発火
+   */
+  emit(eventType, data) {
+    if (this.customEvents.has(eventType)) {
+      this.customEvents.get(eventType).forEach(handler => {
+        try {
+          handler(data);
+        } catch (error) {
+          console.error(`[SpaceThemeManager] エラー in ${eventType} handler:`, error);
+        }
+      });
+    }
+  }
+
+  /**
+   * カスタムイベントリスナーを削除
+   */
+  off(eventType, handler) {
+    if (this.customEvents.has(eventType)) {
+      this.customEvents.get(eventType).delete(handler);
+    }
   }
 
   /**
@@ -124,12 +141,6 @@ export class SpaceThemeManager {
     // ライン数に応じた宇宙戦闘
     this.triggerSpaceBattle(linesCount, lineType);
     
-    console.log('[SpaceThemeManager] 宇宙戦闘発生:', {
-      linesCount,
-      lineType,
-      combatIntensity: this.combatIntensity,
-      combo: this.stats.currentCombo
-    });
   }
 
   /**
@@ -286,11 +297,12 @@ export class SpaceThemeManager {
    * カメラシェイクをトリガー
    */
   triggerCameraShake() {
-    // WebGLCameraにシェイクイベントを送信
-    this.eventManager.emit('cameraShake', {
+    // カスタムイベントとしてシェイクを発火
+    this.emit('cameraShake', {
       intensity: 0.5,
       duration: 1000
     });
+    
   }
 
   /**
@@ -318,10 +330,6 @@ export class SpaceThemeManager {
     // レベルアップ演出
     this.triggerLevelUpEffect(newLevel);
     
-    console.log('[SpaceThemeManager] レベルアップ:', {
-      level: newLevel,
-      combatIntensity: this.combatIntensity
-    });
   }
 
   /**
@@ -366,7 +374,6 @@ export class SpaceThemeManager {
     if (this.spaceExplosions) this.spaceExplosions.clearAllExplosions();
     if (this.spaceBackground) this.spaceBackground.updateLevel(1);
     
-    console.log('[SpaceThemeManager] ゲームリセット完了');
   }
 
   /**
@@ -410,7 +417,6 @@ export class SpaceThemeManager {
    */
   deactivate() {
     this.isActive = false;
-    console.log('[SpaceThemeManager] 宇宙テーマ無効化');
   }
 
   /**
@@ -418,18 +424,16 @@ export class SpaceThemeManager {
    */
   activate() {
     this.isActive = true;
-    console.log('[SpaceThemeManager] 宇宙テーマ有効化');
   }
 
   /**
    * リソースを解放
    */
   dispose() {
-    // イベントリスナーを削除
-    this.eventManager.off('linesCleared');
-    this.eventManager.off('levelUp');
-    this.eventManager.off('gameReset');
-    this.eventManager.off('piecePlaced');
+    // カスタムイベントリスナーをクリア
+    if (this.customEvents) {
+      this.customEvents.clear();
+    }
     
     // 各システムを解放
     if (this.spaceBackground) this.spaceBackground.dispose();

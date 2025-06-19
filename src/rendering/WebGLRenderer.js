@@ -14,6 +14,10 @@ import { WebGLPreviewRenderer } from './webgl/WebGLPreviewRenderer.js';
 import { WebGLGhost } from './webgl/WebGLGhost.js';
 import { HardDropEffect } from '../effects/HardDropEffect.js';
 
+// 宇宙テーマシステム
+import { SpaceThemeManager } from '../themes/space/SpaceThemeManager.js';
+import { EventManager } from '../event/EventManager.js';
+
 /**
  * WebGL/Three.jsを使用する3Dレンダラー
  * 
@@ -57,28 +61,60 @@ export class WebGLRenderer extends BaseRenderer {
     this.ghost = null;
     this.hardDropEffect = null;
     
+    // 宇宙テーマシステム
+    this.spaceTheme = null;
+    this.themeEnabled = true;
+    this.eventManager = new EventManager();
+    
     // 状態管理
     this.frameCount = 0;
     this.lastFPSUpdate = 0;
     this.currentFPS = 0;
     this.isBoardInitialized = false;
     
-    this.initialize();
+    // 同期的な基本初期化のみ実行
+    this.initializeSync();
   }
 
   /**
-   * WebGLレンダラーの初期化
+   * 同期的な基本初期化
+   */
+  initializeSync() {
+    try {
+      // 依存関係: Three.jsのシーンとレンダラーが最初に設定される必要がある
+      this.initializeThreeJS();
+      // 依存関係: 各サブシステムはThree.jsのシーンに依存する
+      this.initializeSubSystemsSync();
+      // 依存関係: レンダリングループは初期化されたサブシステムとThree.jsのレンダラーに依存する
+      this.startRenderLoop();
+      
+      // 非同期で宇宙テーマを初期化
+      this.initializeSpaceTheme().catch(error => {
+        console.error('[WebGLRenderer] 宇宙テーマ初期化失敗:', error);
+        this.themeEnabled = false;
+      });
+      
+      console.log('[WebGLRenderer] 統合システム初期化完了');
+      return true;
+    } catch (error) {
+      console.error('[WebGLRenderer] 初期化失敗:', error);
+      return false;
+    }
+  }
+
+  /**
+   * WebGLレンダラーの完全初期化（非同期）
    * - Three.js基盤の初期化
    * - サブシステムの初期化
    * - レンダリングループの開始
    * @returns {boolean} 初期化が成功したか
    */
-  initialize() {
+  async initialize() {
     try {
       // 依存関係: Three.jsのシーンとレンダラーが最初に設定される必要がある
       this.initializeThreeJS();
       // 依存関係: 各サブシステムはThree.jsのシーンに依存する
-      this.initializeSubSystems();
+      await this.initializeSubSystems();
       // 依存関係: レンダリングループは初期化されたサブシステムとThree.jsのレンダラーに依存する
       this.startRenderLoop();
       
@@ -129,11 +165,11 @@ export class WebGLRenderer extends BaseRenderer {
   }
 
   /**
-   * 各サブシステムの初期化
-   * - 各サブシステムはThree.jsのシーンや他のサブシステムに依存する
+   * 各サブシステムの同期初期化
+   * - 宇宙テーマ以外のサブシステムを初期化
    * @returns {void}
    */
-  initializeSubSystems() {
+  initializeSubSystemsSync() {
     // カメラシステム: canvasに依存
     this.camera = new WebGLCamera(this.canvas);
     this.camera.initialize();
@@ -183,6 +219,83 @@ export class WebGLRenderer extends BaseRenderer {
   }
 
   /**
+   * 各サブシステムの初期化
+   * - 各サブシステムはThree.jsのシーンや他のサブシステムに依存する
+   * @returns {void}
+   */
+  async initializeSubSystems() {
+    // カメラシステム: canvasに依存
+    this.camera = new WebGLCamera(this.canvas);
+    this.camera.initialize();
+    
+    // ライティングシステム: sceneに依存
+    this.lighting = new WebGLLighting(this.scene);
+    this.lighting.initialize();
+    
+    // ブロック管理システム: colors, blockSizeに依存
+    this.blocks = new WebGLBlocks(this.colors, this.blockSize);
+    this.blocks.initialize();
+    
+    // パーティクルシステム: sceneに依存
+    this.particles = new WebGLParticles(this.scene);
+    this.particles.initialize();
+    
+    // エフェクトシステム: scene, blocksのジオメトリとマテリアルに依存
+    this.effects = new WebGLEffects(
+      this.scene, 
+      this.blocks.getGeometry(), 
+      this.blocks.getMaterials()
+    );
+    
+    // 描画システム: scene, blocksに依存
+    this.drawing = new WebGLDrawing(this.scene, this.blocks);
+    
+    // アニメーションシステム: blocks, particlesに依存
+    this.animations = new WebGLAnimations(this.blocks, this.particles);
+    
+    // プレビューレンダラー: blocksに依存
+    this.previewRenderer = new WebGLPreviewRenderer(this.blocks);
+    
+    // ゴーストレンダラー: scene, blocksに依存
+    this.ghost = new WebGLGhost(this.scene, this.blocks);
+    
+    // ハードドロップエフェクトの初期化: scene, particlesに依存し、cameraは非同期で設定される
+    try {
+      // HardDropEffectのコンストラクタはcameraが非同期に設定されるため、最初はnullを渡す
+      this.hardDropEffect = new HardDropEffect(this.scene, this.particles, null);
+      console.log('[WebGLRenderer] HardDropEffect を初期化しました', {
+        hasScene: !!this.scene,
+        hasParticleSystem: !!this.particles
+      });
+    } catch (error) {
+      console.error('[WebGLRenderer] HardDropEffect の初期化に失敗しました:', error);
+    }
+    
+    // 宇宙テーマシステムの初期化
+    await this.initializeSpaceTheme();
+  }
+
+  /**
+   * 宇宙テーマシステムを初期化
+   */
+  async initializeSpaceTheme() {
+    if (!this.themeEnabled) return;
+    
+    try {
+      // WebGLCameraからTHREE.Cameraを取得
+      const threeCamera = this.camera.camera || this.camera;
+      this.spaceTheme = new SpaceThemeManager(this.scene, threeCamera, this.eventManager);
+      await this.spaceTheme.initialize();
+      
+      // 背景色を宇宙色に変更
+      this.scene.background = new THREE.Color(0x000011);
+    } catch (error) {
+      console.error('[WebGLRenderer] 宇宙テーマシステム初期化失敗:', error);
+      this.themeEnabled = false;
+    }
+  }
+
+  /**
    * レンダリングループの開始
    * - requestAnimationFrameを使用して継続的にupdateSystemsとrenderSceneを呼び出す
    * @returns {void}
@@ -213,6 +326,12 @@ export class WebGLRenderer extends BaseRenderer {
     }
     if (this.hardDropEffect) this.hardDropEffect.update();
     if (this.animations) this.animations.update();
+    
+    // 宇宙テーマシステムの更新
+    if (this.spaceTheme && this.themeEnabled) {
+      const deltaTime = 1 / 60; // 60fps想定
+      this.spaceTheme.update(deltaTime);
+    }
     
     // Tweenアニメーションの更新
     TWEEN.update();
@@ -387,6 +506,12 @@ export class WebGLRenderer extends BaseRenderer {
    * 統合リソース解放
    */
   dispose() {
+    // 宇宙テーマシステムの解放
+    if (this.spaceTheme) {
+      this.spaceTheme.dispose();
+      this.spaceTheme = null;
+    }
+    
     // サブシステムの解放
     if (this.hardDropEffect) this.hardDropEffect.dispose();
     if (this.ghost) this.ghost.dispose();

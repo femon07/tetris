@@ -227,10 +227,6 @@ export class SpaceBackground {
       this.nebulaMaterial.uniforms.nebulaColor2.value.setHex(colorData.bg);
     }
     
-    console.log('[SpaceBackground] レベル更新:', {
-      level: newLevel,
-      colors: colorData
-    });
   }
 
   /**

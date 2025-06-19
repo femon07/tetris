@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tetris</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f0f0f0;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    #game {
+      background-color: #fff;
+      border: 2px solid #333;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      display: block;
+      margin: 0 auto 20px;
+    }
+    .game-container {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .game-board {
+      position: relative;
+    }
+    .side-info {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .game-info {
+      text-align: left;
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+      min-width: 150px;
+    }
+    .hold-area {
+      text-align: center;
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+      min-width: 150px;
+    }
+    .next-area {
+      text-align: center;
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+      min-width: 150px;
+    }
+    .info-item {
+      margin-bottom: 10px;
+    }
+    .info-label {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    #next-piece-canvas, #hold-piece-canvas {
+      background: #f8f8f8;
+      border: 1px solid #ddd;
+      margin-top: 10px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .piece-preview {
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #333;
+    }
+    .controls-info {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #666;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tetris</h1>
+  <div class="game-container">
+    <!-- ホールドエリア -->
+    <div class="side-info">
+      <div class="hold-area">
+        <div class="piece-preview">HOLD</div>
+        <canvas id="hold-piece-canvas" width="80" height="80"></canvas>
+        <div class="controls-info">
+          C or Shift<br>to hold
+        </div>
+      </div>
+    </div>
+
+    <!-- ゲームボード -->
+    <div class="game-board">
+      <canvas id="game" width="300" height="600"></canvas>
+    </div>
+
+    <!-- 次のピースとスコア情報 -->
+    <div class="side-info">
+      <div class="next-area">
+        <div class="piece-preview">NEXT</div>
+        <canvas id="next-piece-canvas" width="80" height="80"></canvas>
+      </div>
+
+      <div class="game-info">
+        <div class="info-item">
+          <span class="info-label">Score:</span>
+          <span id="score">0</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Lines:</span>
+          <span id="lines">0</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Level:</span>
+          <span id="level">1</span>
+        </div>
+        <div class="controls-info">
+          ← → ↓ ↑ : Move & Rotate<br>
+          Space: Hard Drop<br>
+          R: Reset Game
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="./main.js"></script>
+</body>
+</html>
