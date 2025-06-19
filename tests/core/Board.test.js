@@ -74,7 +74,7 @@ describe('Board クラス', () => {
       
       const clearedLines = board.clearLines();
       
-      expect(clearedLines).toBe(1);
+      expect(clearedLines).toEqual([0]);
       // クリアされた行は削除され、上部に空の行が追加される
       expect(board.grid[0].every(cell => cell === 0)).toBe(true);
       // 他の行は変更されていないことを確認
@@ -99,7 +99,7 @@ describe('Board クラス', () => {
 
       const clearedLines = board.clearLines();
       
-      expect(clearedLines).toBe(2);
+      expect(clearedLines).toEqual([0, 1]);
       // クリアされた2行は削除され、上部に空の行が2行追加される
       expect(board.grid[0].every(cell => cell === 0)).toBe(true);
       expect(board.grid[1].every(cell => cell === 0)).toBe(true);
@@ -145,7 +145,7 @@ describe('Board クラス', () => {
       
       const clearedLines = board.clearLines();
       
-      expect(clearedLines).toBe(board.rows);
+      expect(clearedLines.length).toBe(board.rows);
       // 全ての行が空になる
       expect(board.grid.every(row => row.every(cell => cell === 0))).toBe(true);
     });
@@ -154,7 +154,7 @@ describe('Board クラス', () => {
       // 何も埋めない
       const clearedLines = board.clearLines();
       
-      expect(clearedLines).toBe(0);
+      expect(clearedLines).toEqual([]);
       // ボードは初期状態のまま
       const emptyGrid = Array.from({ length: board.rows }, () => Array(board.cols).fill(0));
       expect(board.grid).toEqual(emptyGrid);
