@@ -36,7 +36,7 @@ export class ThemeSelector {
     this.selectorElement.innerHTML = `
       <div class="theme-selector-label">
         <span class="theme-icon">🎨</span>
-        <span>テーマ:</span>
+        <span class="theme-text">テーマ</span>
       </div>
       <select class="theme-dropdown" id="theme-dropdown">
         ${this.generateThemeOptions()}
@@ -74,37 +74,41 @@ export class ThemeSelector {
     style.textContent = `
       .theme-selector {
         margin-bottom: 15px;
-        padding: 10px;
+        padding: 8px;
         background: rgba(240, 240, 240, 0.95);
         border-radius: 5px;
         border: 1px solid #ccc;
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
       }
       
       .theme-selector-label {
         display: flex;
         align-items: center;
-        gap: 5px;
-        font-size: 12px;
+        gap: 4px;
+        font-size: 11px;
         font-weight: bold;
         color: #333;
+        flex-shrink: 0;
+        white-space: nowrap;
       }
       
       .theme-icon {
-        font-size: 14px;
+        font-size: 12px;
+        flex-shrink: 0;
       }
       
       .theme-dropdown {
-        padding: 4px 8px;
+        padding: 4px 6px;
         border: 1px solid #ddd;
         border-radius: 3px;
         background: white;
-        font-size: 11px;
-        min-width: 120px;
+        font-size: 10px;
+        width: 100%;
         cursor: pointer;
+        min-width: 0;
       }
       
       .theme-dropdown:hover {
@@ -128,6 +132,61 @@ export class ThemeSelector {
       
       .theme-selector.space-theme .theme-dropdown {
         background: rgba(255, 255, 255, 0.9);
+      }
+      
+      /* モバイル対応 */
+      @media (max-width: 768px) {
+        .theme-selector {
+          padding: 6px;
+          margin-bottom: 10px;
+        }
+        
+        .theme-selector-label {
+          font-size: 10px;
+          gap: 3px;
+        }
+        
+        .theme-icon {
+          font-size: 11px;
+        }
+        
+        .theme-dropdown {
+          font-size: 9px;
+          padding: 3px 5px;
+        }
+      }
+      
+      /* より小さい画面での調整 */
+      @media (max-width: 480px) {
+        .theme-selector {
+          padding: 4px;
+          margin-bottom: 8px;
+        }
+        
+        .theme-selector-label {
+          font-size: 9px;
+          gap: 2px;
+        }
+        
+        .theme-icon {
+          font-size: 10px;
+        }
+        
+        .theme-dropdown {
+          font-size: 8px;
+          padding: 2px 4px;
+        }
+      }
+      
+      /* 極小画面ではアイコンのみ表示 */
+      @media (max-width: 360px) {
+        .theme-text {
+          display: none;
+        }
+        
+        .theme-selector-label {
+          justify-content: center;
+        }
       }
     `;
     document.head.appendChild(style);
