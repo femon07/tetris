@@ -108,7 +108,6 @@ export class InputController {
     // DOMイベントリスナーを登録
     document.addEventListener('keydown', this.onKeyDown);
     document.addEventListener('keyup', this.onKeyUp);
-    console.log('[InputController] DOMイベントリスナー登録完了');
 
     this.isListening = true;
   }
@@ -131,8 +130,6 @@ export class InputController {
     if (this.boundOnKeyUp) {
       document.removeEventListener('keyup', this.boundOnKeyUp);
     }
-    
-    console.log('[InputController] DOMイベントリスナー削除完了');
   }
 
   onKeyDown(event) {
@@ -210,14 +207,11 @@ export class InputController {
       return;
     }
 
-    // ハードドロップエフェクトを作成
-    this.createHardDropEffect(piece);
-
     // ハードドロップ開始位置を記録
-    const startPos = {
-      x: piece.pos.x,
-      y: piece.pos.y,
-      z: 0
+    const startPiece = {
+      pos: { ...piece.pos },
+      type: piece.type,
+      matrix: piece.matrix
     };
 
     // ゴーストピースの位置を取得して最終位置を計算
@@ -226,42 +220,38 @@ export class InputController {
       return;
     }
 
-    const endPos = {
-      x: ghostPos.pos.x,
-      y: ghostPos.pos.y,
-      z: 0
+    const endPiece = {
+      pos: { ...ghostPos.pos },
+      type: piece.type,
+      matrix: piece.matrix
     };
 
-    const dropDistance = endPos.y - startPos.y;
+    const dropDistance = endPiece.pos.y - startPiece.pos.y;
 
-    // エフェクトを先に呼び出し（ピースが配置される前）
+    // エフェクトを作成（ピース配置前）
     if (dropDistance > 0) {
       const renderer = this.gameApplication.getRenderer();
       
-      if (renderer && typeof renderer.createHardDropEffect === 'function') {
-        // ピースのコピーを作成してエフェクトに渡す
-        const pieceForEffect = {
-          matrix: piece.matrix,
-          pos: { ...piece.pos },
-          type: piece.type
-        };
-    
-        renderer.createHardDropEffect(pieceForEffect, startPos, endPos, dropDistance);
-    
+      if (renderer && typeof renderer.createHardDropLightningEffect === 'function') {
+        // 新しい雷撃エフェクトを使用
+        renderer.createHardDropLightningEffect(startPiece, endPiece);
+      } else {
+        // フォールバック: 古いエフェクト
+        this.createHardDropEffect(piece);
       }
     }
 
-    // ハードドロップ: ピースを最下部まで移動
-    let actualDropDistance = 0;
-    while (game.dropPiece()) {
-      actualDropDistance++;
+    // ハードドロップを実行（ゲームオーバー処理も含む）
+    const result = this.gameApplication.performHardDrop();
+    
+    if (result === false) {
+      // ゲームが動作していない場合
+      return;
     }
-
-    // ハードドロップのスコアを追加
-    if (actualDropDistance > 0) {
-      const hardDropScore = game.gameState.scoreCalculator.calculateHardDropScore(actualDropDistance);
-      game.gameState.score += hardDropScore;
-      this.gameApplication.syncGameState();
+    
+    if (result.gameOver) {
+      // ゲームオーバーの場合は処理終了
+      return;
     }
   }
 

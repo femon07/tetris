@@ -249,6 +249,116 @@ h1 {
   animation: fadeIn 0.5s ease;
 }
 
+/* Game Over Overlay */
+.game-over-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.game-over-content {
+  background: linear-gradient(135deg, var(--surface-color) 0%, var(--card-color) 100%);
+  border: 2px solid var(--border-color);
+  border-radius: 20px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  animation: slideIn 0.3s ease-out;
+  max-width: 90vw;
+  width: 400px;
+}
+
+.game-over-content h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, var(--error-color), var(--warning-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+.final-score {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.final-score p {
+  margin: 8px 0;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+}
+
+.final-score span {
+  color: var(--primary-color);
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.game-over-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.game-over-btn {
+  padding: 15px 30px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 50px;
+}
+
+.game-over-btn.primary {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+}
+
+.game-over-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
+}
+
+.game-over-btn.secondary {
+  background: var(--card-color);
+  color: var(--text-secondary);
+  border: 2px solid var(--border-color);
+}
+
+.game-over-btn.secondary:hover {
+  background: var(--border-color);
+  color: var(--text-primary);
+  transform: translateY(-2px);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 /* Extended Game Information Styles */
 .info-section {
   margin-bottom: 12px;

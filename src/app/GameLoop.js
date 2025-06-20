@@ -20,7 +20,6 @@ export class GameLoop {
     
     // ゲームループを開始
     this.animationFrameId = requestAnimationFrame((time) => this.update(time));
-    console.log('GameLoop started');
   }
 
   stop() {
@@ -34,8 +33,6 @@ export class GameLoop {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
-    
-    console.log('GameLoop stopped');
   }
 
   pause() {
@@ -142,8 +139,16 @@ export class GameLoop {
   }
 
   handleGameOver() {
-    console.log('Game Over!');
-    alert('Game Over!');
+    
+    // ゲームオーバーオーバーレイを表示
+    if (this.gameApplication && this.gameApplication.gameOverOverlay) {
+      const gameStats = this.gameApplication.getGameStats();
+      this.gameApplication.gameOverOverlay.show(gameStats);
+    } else {
+      // フォールバック：オーバーレイが利用できない場合
+      console.warn('[GameLoop] ゲームオーバーオーバーレイが利用できません');
+      alert('Game Over!');
+    }
   }
 
   handleError() {

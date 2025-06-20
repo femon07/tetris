@@ -4,6 +4,7 @@ import { GameStateManager } from '../state/GameStateManager.js';
 import { GAME_CONSTANTS } from '../constants/game.js';
 import { InputController } from './InputController.js';
 import { ThemeSelector } from '../ui/ThemeSelector.js';
+import { GameOverOverlay } from '../ui/GameOverOverlay.js';
 
 export class GameApplication {
   constructor(renderer) {
@@ -12,6 +13,7 @@ export class GameApplication {
     this.renderer = renderer;
     this.inputController = null;
     this.themeSelector = null;
+    this.gameOverOverlay = null;
     this.isInitialized = false;
   }
 
@@ -34,6 +36,9 @@ export class GameApplication {
           await this.renderer.switchTheme(themeId);
         });
       }
+
+      // ゲームオーバーオーバーレイを初期化（DOMContentLoaded後に確実に実行）
+      this.initializeGameOverOverlay();
 
       this.isInitialized = true;
       
@@ -64,6 +69,50 @@ export class GameApplication {
 
   syncGameState() {
     this.gameStateManager.syncWithGame(this.game);
+  }
+
+  // ハードドロップ専用メソッド（ゲームオーバー処理を含む）
+  performHardDrop() {
+    if (!this.isRunning()) {
+      return false;
+    }
+
+    const game = this.game;
+    let actualDropDistance = 0;
+    
+    // ピースを最下部まで移動
+    while (game.dropPiece() && !game.isGameOver) {
+      actualDropDistance++;
+    }
+
+    // ゲームオーバー処理
+    if (game.isGameOver) {
+      this.gameStateManager.set('isGameOver', true);
+      this.syncGameState();
+      
+      // GameLoopを停止
+      if (this.gameStateManager.stopGameLoop) {
+        this.gameStateManager.stopGameLoop();
+      }
+      
+      
+      // ゲームオーバーオーバーレイを表示
+      if (this.gameOverOverlay) {
+        const gameStats = this.getGameStats();
+        this.gameOverOverlay.show(gameStats);
+      }
+      
+      return { actualDropDistance, gameOver: true };
+    }
+
+    // スコア計算
+    if (actualDropDistance > 0) {
+      const hardDropScore = game.gameState.scoreCalculator.calculateHardDropScore(actualDropDistance);
+      game.gameState.score += hardDropScore;
+      this.syncGameState();
+    }
+
+    return { actualDropDistance, gameOver: false };
   }
 
   getGameData() {
@@ -195,5 +244,40 @@ export class GameApplication {
   // ゲーム状態管理器の取得
   getStateManager() {
     return this.gameStateManager;
+  }
+
+  // ゲーム統計を取得
+  getGameStats() {
+    const state = this.gameStateManager.getState();
+    return {
+      score: state.score || 0,
+      lines: state.lines || 0,
+      level: state.level || 1
+    };
+  }
+
+  // ゲームオーバーオーバーレイの初期化
+  initializeGameOverOverlay() {
+    const initOverlay = () => {
+      try {
+        this.gameOverOverlay = new GameOverOverlay();
+        this.gameOverOverlay.setRestartCallback(() => {
+          this.reset();
+        });
+        this.gameOverOverlay.setCloseCallback(() => {
+          // オーバーレイを閉じるだけ（何もしない）
+        });
+      } catch (error) {
+        console.error('[GameApplication] ゲームオーバーオーバーレイの初期化に失敗:', error);
+      }
+    };
+
+    // DOMが完全に読み込まれているかチェック
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initOverlay);
+    } else {
+      // すでに読み込み完了している場合は即座に実行
+      setTimeout(initOverlay, 0);
+    }
   }
 }

@@ -141,7 +141,9 @@ export function playerDrop() {
       gameStateManager.set('isGameOver', true);
       updateGameState();
       gameStateManager.stopGameLoop();
-      alert('Game Over!');
+      
+      // 新しいアーキテクチャではGameLoopが処理するため、ここではconsole.logのみ
+      console.log('Game Over! (legacy game.js)');
       return false;
     }
     // 通常時は同期

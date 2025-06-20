@@ -410,6 +410,42 @@ export class WebGLRenderer extends BaseRenderer {
   }
 
   /**
+   * ハードドロップ雷撃エフェクト
+   */
+  createHardDropLightningEffect(startPiece, endPiece) {
+    if (!this.particles || !startPiece || !endPiece) {
+      return;
+    }
+
+    // 開始位置と終了位置を計算
+    const startX = startPiece.pos.x;
+    const startY = startPiece.pos.y;
+    const startZ = 0;
+    
+    const endX = endPiece.pos.x;
+    const endY = endPiece.pos.y;
+    const endZ = 0;
+
+    // ピースの色インデックスを取得
+    const colorIndex = this.getColorIndex(startPiece.type);
+    
+    // 雷撃エフェクトを作成
+    this.particles.createLightningStrike(
+      startX, startY, startZ,
+      endX, endY, endZ,
+      colorIndex
+    );
+  }
+
+  /**
+   * ピースタイプから色インデックスを取得
+   */
+  getColorIndex(pieceType) {
+    const typeMap = { I: 1, J: 2, L: 3, O: 4, S: 5, T: 6, Z: 7 };
+    return typeMap[pieceType] || 1;
+  }
+
+  /**
    * ハードドロップエフェクト
    * @param {Object} piece - 落下したピース
    * @param {Object} startPos - 開始位置
