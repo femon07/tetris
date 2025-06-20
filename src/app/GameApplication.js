@@ -68,17 +68,60 @@ export class GameApplication {
 
   getGameData() {
     const state = this.gameStateManager.getState();
-    return {
+    
+    // 複数のnextピースを取得（ゲームからの実装状況に応じて調整）
+    let nextPieces = [];
+    if (this.game && this.game.pieceManager) {
+      // PieceManagerからnextピースの配列を取得
+      nextPieces = this.game.pieceManager.getNextPieces ? 
+        this.game.pieceManager.getNextPieces(5) : 
+        (state.nextPiece ? [state.nextPiece] : []);
+    } else if (state.nextPiece) {
+      nextPieces = [state.nextPiece];
+    }
+    
+    // テスト用のデータ（実際のゲームデータがない場合）
+    if (nextPieces.length === 0) {
+      nextPieces = this.getTestNextPieces();
+    }
+    
+    // ゴーストピースデータを取得
+    const ghostPiece = this.game.ghostPiecePosition;
+
+    const gameData = {
       boardGrid: this.game.board ? this.game.board.grid : null,
       piece: state.piece,
       nextPiece: state.nextPiece,
+      nextPieces: nextPieces,
       holdPiece: state.holdPiece,
+      ghostPiece: ghostPiece,
       score: state.score,
       lines: state.lines,
       level: state.level,
       isGameOver: state.isGameOver,
       paused: state.paused
     };
+    
+    return gameData;
+  }
+
+  // テスト用のNextピースデータ
+  getTestNextPieces() {
+    const pieces = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+    const matrices = {
+      I: [[1, 1, 1, 1]],
+      O: [[1, 1], [1, 1]],
+      T: [[0, 1, 0], [1, 1, 1]],
+      S: [[0, 1, 1], [1, 1, 0]],
+      Z: [[1, 1, 0], [0, 1, 1]],
+      J: [[1, 0, 0], [1, 1, 1]],
+      L: [[0, 0, 1], [1, 1, 1]]
+    };
+    
+    return pieces.slice(0, 5).map(type => ({
+      type: type,
+      matrix: matrices[type]
+    }));
   }
 
   // ゲーム操作のメソッド

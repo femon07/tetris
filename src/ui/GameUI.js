@@ -1,21 +1,35 @@
-export default class GameUI {
-  setupEventListeners() {
-    document.removeEventListener('keydown', this.onKeyDown);
-    document.removeEventListener('keyup', this.onKeyUp);
-    document.addEventListener('keydown', this.onKeyDown);
-    document.addEventListener('keyup', this.onKeyUp);
-  }
+import { TouchController } from './TouchController.js';
 
-  removeEventListeners() {
-    document.removeEventListener('keydown', this.onKeyDown);
-    document.removeEventListener('keyup', this.onKeyUp);
-  }
+export default class GameUI {
   constructor(state, actions, gameStateManager) {
     this.state = state;
     this.actions = actions;
     this.gameStateManager = gameStateManager;
     this.onKeyDown = this.onKeyDown.bind(this);
     this.onKeyUp = this.onKeyUp.bind(this);
+    
+    // TouchControllerを初期化
+    this.touchController = new TouchController(actions, gameStateManager);
+  }
+
+  setupEventListeners() {
+    document.removeEventListener('keydown', this.onKeyDown);
+    document.removeEventListener('keyup', this.onKeyUp);
+    document.addEventListener('keydown', this.onKeyDown);
+    document.addEventListener('keyup', this.onKeyUp);
+    
+    // タッチコントロールを初期化
+    this.touchController.initialize();
+  }
+
+  removeEventListeners() {
+    document.removeEventListener('keydown', this.onKeyDown);
+    document.removeEventListener('keyup', this.onKeyUp);
+    
+    // タッチコントロールを解放
+    if (this.touchController) {
+      this.touchController.dispose();
+    }
   }
 
   onKeyDown(event) {
@@ -48,22 +62,26 @@ export default class GameUI {
         actions.rotatePiece(1);
         break;
       case ' ':
-        // ハードドロップ: ピースが着地するまで連続で落とす
-        if (state.piece && state.piece.pos && typeof state.piece.pos.y === 'number') {
-          let dropCount = 0;
-          const maxDrops = Math.min(state.ROWS || 20, 100); // より安全な上限設定
-          while (dropCount < maxDrops && !state.isGameOver && state.piece) {
-            const currentY = state.piece.pos.y;
-            try {
-              const dropped = actions.dropPiece();
-              if (!dropped || !state.piece || state.piece.pos.y === currentY) {
-                // ピースが落ちなかった、または位置が変わらなかった場合は終了
+        // ハードドロップ（新しいエフェクト付きアクション）
+        if (actions.hardDrop) {
+          actions.hardDrop();
+        } else {
+          // フォールバック: 従来のハードドロップ処理
+          if (state.piece && state.piece.pos && typeof state.piece.pos.y === 'number') {
+            let dropCount = 0;
+            const maxDrops = Math.min(state.ROWS || 20, 100);
+            while (dropCount < maxDrops && !state.isGameOver && state.piece) {
+              const currentY = state.piece.pos.y;
+              try {
+                const dropped = actions.dropPiece();
+                if (!dropped || !state.piece || state.piece.pos.y === currentY) {
+                  break;
+                }
+                dropCount++;
+              } catch (error) {
+                console.error('Error during hard drop:', error);
                 break;
               }
-              dropCount++;
-            } catch (error) {
-              console.error('Error during hard drop:', error);
-              break;
             }
           }
         }

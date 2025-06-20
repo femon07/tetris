@@ -119,22 +119,21 @@ export class GameLoop {
     try {
       const renderer = this.gameApplication.getRenderer();
       if (!renderer) {
+        console.warn('[GameLoop] Renderer not found');
         return;
       }
 
       const gameData = this.gameApplication.getGameData();
       
-      // メインキャンバスに描画
-      const nextPieceCanvas = document.getElementById('next-piece-canvas');
+      // メインキャンバスに描画  
       const holdPieceCanvas = document.getElementById('hold-piece-canvas');
       
-      renderer.render(gameData, nextPieceCanvas, holdPieceCanvas);
+      // Nextピースは複数キャンバスになったため、rendererには渡さない（HoldPieceのみ）
+      renderer.render(gameData, null, holdPieceCanvas);
 
       // UI更新
       if (this.uiUpdater) {
-        this.uiUpdater.updateScore(gameData.score);
-        this.uiUpdater.updateLines(gameData.lines);
-        this.uiUpdater.updateLevel(gameData.level);
+        this.uiUpdater.updateAll(gameData);
       }
       
     } catch (error) {

@@ -35,8 +35,32 @@ npm test
 ```
 https://femon07.github.io/tetris/
 ```
-GitHub リポジトリの設定画面で Pages の Source を `gh-pages` ブランチにし、公開フォルダをルートに設定します。
-main ブランチへ push すると `.github/workflows/deploy.yml` が `dist` ディレクトリを `gh-pages` ブランチへ自動で配置するため、利用者は特別な操作を行わなくても Pages を公開できます。
+
+### 📁 ファイル構成と開発ガイドライン
+
+**重要: 開発時は必ずルートディレクトリのファイルを使用してください**
+
+```
+📂 tetris/
+├── 🏠 index.html          ← 【開発用】ここを使用
+├── 🏠 main.js             ← 【開発用】webpackビルド成果物
+├── 📁 src/                ← 【開発用】ソースコード
+├── 📁 dist/               ← ビルド出力（中間）
+└── 📁 docs/               ← 【GitHub Pages専用】触らない！
+    ├── index.html         ← 自動生成
+    └── main.js            ← 自動生成
+```
+
+### 🔄 開発ワークフロー
+1. **開発**: `src/`でコード編集
+2. **テスト**: `npm start` でローカルサーバー起動、またはルートの`index.html`を開く  
+3. **ビルド**: `npm run build` で`docs/`に自動配信
+4. **デプロイ**: GitHub が`docs/`を自動的にGitHub Pagesで配信
+
+### ⚠️ 注意事項
+- **絶対に`docs/index.html`を直接開かないでください**
+- `docs/`ディレクトリのファイルは全て自動生成です
+- 開発時の変更は必ずルートまたは`src/`で行ってください
 
 ## 操作方法
 - 左右矢印キー: ブロック移動

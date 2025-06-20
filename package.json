@@ -8,12 +8,17 @@
     "start": "webpack serve",
     "prebuild": "node $(pwd)/scripts/prebuild.mjs",
     "build": "webpack",
+    "postbuild": "npm run copy-files",
+    "copy-files": "cpx \"index.html\" dist && cpx \"dist/index.html\" docs && cpx \"dist/main.js\" docs && cpx \"dist/main.js\" . && cpx \"src/styles/**/*.css\" docs/src/styles",
     "test": "jest --verbose --no-cache",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "clean": "rimraf dist docs",
-    "postbuild": "npm run copy-files",
-    "copy-files": "cpx \"index.html\" dist && cpx \"dist/index.html\" docs && cpx \"dist/main.js\" docs && cpx \"dist/main.js\" ."
+    "clean": "rimraf dist docs"
+  },
+  "_comments": {
+    "docs-directory": "docs/ is for GitHub Pages deployment only. Never edit files in docs/ directly during development!",
+    "dev-workflow": "Development: edit src/ → Test: npm start → Build: npm run build → Deploy: GitHub auto-serves docs/",
+    "file-usage": "Use root index.html for development, docs/index.html is auto-generated for GitHub Pages"
   },
   "keywords": [
     "tetris",

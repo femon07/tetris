@@ -1,13 +1,17 @@
+import { NextPieceManager } from '../ui/NextPieceManager.js';
+
 export class UIUpdater {
   constructor() {
     this.elements = this.findUIElements();
+    this.nextPieceManager = new NextPieceManager();
   }
 
   findUIElements() {
     return {
       score: document.getElementById('score'),
       lines: document.getElementById('lines'),
-      level: document.getElementById('level')
+      level: document.getElementById('level'),
+      holdPieceCanvas: document.getElementById('hold-piece-canvas')
     };
   }
 
@@ -56,6 +60,65 @@ export class UIUpdater {
     }
   }
 
+  updateNextPieces(nextPieces) {
+    if (this.nextPieceManager) {
+      this.nextPieceManager.updateNextPieces(nextPieces || []);
+    }
+  }
+
+  updateHoldPiece(holdPiece) {
+    try {
+      const canvas = this.elements.holdPieceCanvas;
+      if (!canvas) return;
+
+      const context = canvas.getContext('2d');
+      
+      // キャンバスをクリア
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = '#1e293b';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (holdPiece && holdPiece.matrix) {
+        this.drawPieceOnCanvas(context, canvas, holdPiece);
+      }
+    } catch (error) {
+      console.error('Error updating hold piece:', error);
+    }
+  }
+
+  drawPieceOnCanvas(context, canvas, piece) {
+    if (!piece || !piece.matrix || !piece.type) return;
+
+    const blockSize = Math.min(canvas.width, canvas.height) / 6;
+    const colors = {
+      I: '#00f5ff', O: '#ffed00', T: '#a000a0',
+      S: '#00ff00', Z: '#ff0000', J: '#0000ff', L: '#ff8000'
+    };
+    const color = colors[piece.type] || '#ffffff';
+
+    const pieceWidth = piece.matrix[0].length * blockSize;
+    const pieceHeight = piece.matrix.length * blockSize;
+    const offsetX = (canvas.width - pieceWidth) / 2;
+    const offsetY = (canvas.height - pieceHeight) / 2;
+
+    for (let y = 0; y < piece.matrix.length; y++) {
+      for (let x = 0; x < piece.matrix[y].length; x++) {
+        if (piece.matrix[y][x]) {
+          const pixelX = offsetX + x * blockSize;
+          const pixelY = offsetY + y * blockSize;
+          
+          context.fillStyle = color;
+          context.fillRect(pixelX, pixelY, blockSize, blockSize);
+          
+          // ボーダー
+          context.strokeStyle = '#000';
+          context.lineWidth = 1;
+          context.strokeRect(pixelX, pixelY, blockSize, blockSize);
+        }
+      }
+    }
+  }
+
   updateAll(gameData) {
     if (!gameData) {
       console.warn('No game data provided to updateAll');
@@ -65,6 +128,8 @@ export class UIUpdater {
     this.updateScore(gameData.score || 0);
     this.updateLines(gameData.lines || 0);
     this.updateLevel(gameData.level || 1);
+    this.updateNextPieces(gameData.nextPieces);
+    this.updateHoldPiece(gameData.holdPiece);
   }
 
   // 要素の再取得（DOM構造が変わった場合）
@@ -99,5 +164,7 @@ export class UIUpdater {
     this.updateScore(0);
     this.updateLines(0);
     this.updateLevel(1);
+    this.updateNextPieces([]);
+    this.updateHoldPiece(null);
   }
 }

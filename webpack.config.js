@@ -7,8 +7,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export default {
-  // エントリーポイントをsrc/index.jsに変更
-  entry: './src/index.js',
+  // エントリーポイントをsrc/main.jsに変更
+  entry: './src/main.js',
   output: {
     filename: 'main.js',
     path: path.resolve(__dirname, 'dist'),

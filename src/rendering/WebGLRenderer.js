@@ -367,10 +367,10 @@ export class WebGLRenderer extends BaseRenderer {
         this.ghost.clearGhost();
       }
       
-      // Next/Holdピースを3Dキャンバスに描画
-      if (nextPieceCanvas && gameData.nextPiece) {
-        this.previewRenderer.renderPiece(nextPieceCanvas, gameData.nextPiece);
-      }
+      // NextピースはNextPieceManagerが処理するため、WebGLでは処理しない
+      // if (nextPieceCanvas && gameData.nextPiece) {
+      //   this.previewRenderer.renderPiece(nextPieceCanvas, gameData.nextPiece);
+      // }
       
       if (holdPieceCanvas && gameData.holdPiece) {
         this.previewRenderer.renderPiece(holdPieceCanvas, gameData.holdPiece);

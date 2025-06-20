@@ -99,6 +99,7 @@ export class GameStateManager {
     this.state.piece = gameInstance.piece || null;
     this.state.nextPiece = gameInstance.nextPiece || null;
     this.state.holdPiece = gameInstance.heldPiece || null;
+    this.state.ghostPiece = gameInstance.ghostPiecePosition || null;
     this.state.canHold = gameInstance.canHold !== undefined ? gameInstance.canHold : true;
     
     if (gameInstance.board && gameInstance.board.grid) {

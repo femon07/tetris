@@ -57,25 +57,63 @@ export class PieceManager {
     
     this.currentPiece = null;
     this.nextPiece = null;
+    this.nextPiecesQueue = []; // 複数のNextピースを管理するキュー
     this.reset();
   }
 
   reset() {
-    this.currentPiece = this.createPiece(Math.floor(Math.random() * this.tetrominos.length));
-    this.nextPiece = this.createPiece(Math.floor(Math.random() * this.tetrominos.length));
+    const types = Object.keys(TETROMINO_MAP);
+    this.currentPiece = this.createPiece(Math.floor(Math.random() * types.length));
+    this.nextPiece = this.createPiece(Math.floor(Math.random() * types.length));
+    
+    // Nextピースのキューを初期化（5個のピースを事前生成）
+    this.nextPiecesQueue = [];
+    this.fillNextPiecesQueue();
+  }
+
+  /**
+   * Nextピースキューを満たす
+   */
+  fillNextPiecesQueue() {
+    const types = Object.keys(TETROMINO_MAP);
+    while (this.nextPiecesQueue.length < 5) {
+      const randomIndex = Math.floor(Math.random() * types.length);
+      const piece = this.createPiece(randomIndex);
+      if (piece) {
+        this.nextPiecesQueue.push(piece);
+      }
+    }
   }
 
   createPiece(index) {
-    const matrix = this.tetrominos[index % this.tetrominos.length];
-    const type = Object.keys(TETROMINO_MAP)[index % this.tetrominos.length];
+    const types = Object.keys(TETROMINO_MAP);
+    const type = types[index % types.length];
+    const matrix = TETROMINO_MAP[type];
+    
+    if (!matrix || !matrix[0]) {
+      console.error('Invalid matrix for type:', type);
+      return null;
+    }
+    
     const x = Math.floor((this.boardCols - matrix[0].length) / 2);
     const y = -matrix.length;
     return new Piece(matrix, { x, y }, type);
   }
 
   spawnNewPiece() {
-    this.currentPiece = this.nextPiece || this.createPiece(Math.floor(Math.random() * this.tetrominos.length));
-    this.nextPiece = this.createPiece(Math.floor(Math.random() * this.tetrominos.length));
+    // 現在のnextPieceをcurrentPieceに移動
+    this.currentPiece = this.nextPiece;
+    
+    // キューから次のピースを取得
+    if (this.nextPiecesQueue.length > 0) {
+      this.nextPiece = this.nextPiecesQueue.shift(); // 最初の要素を取得して削除
+      this.fillNextPiecesQueue(); // キューを補充
+    } else {
+      // フォールバック：キューが空の場合
+      const types = Object.keys(TETROMINO_MAP);
+      this.nextPiece = this.createPiece(Math.floor(Math.random() * types.length));
+    }
+    
     return this.currentPiece;
   }
 
@@ -128,6 +166,27 @@ export class PieceManager {
 
   getNextPiece() {
     return this.nextPiece;
+  }
+
+  /**
+   * 複数の次のピースを取得（UI表示用）
+   * @param {number} count - 取得するピース数
+   * @returns {Array} ピースの配列
+   */
+  getNextPieces(count = 5) {
+    const pieces = [];
+    
+    // 現在のnextPieceを最初に追加
+    if (this.nextPiece) {
+      pieces.push(this.nextPiece);
+    }
+    
+    // キューから残りのピースを追加
+    for (let i = 0; i < Math.min(count - 1, this.nextPiecesQueue.length); i++) {
+      pieces.push(this.nextPiecesQueue[i]);
+    }
+    
+    return pieces;
   }
 
   clearCurrentPiece() {

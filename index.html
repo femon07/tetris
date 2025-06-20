@@ -4,91 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tetris</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background-color: #f0f0f0;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      color: #333;
-      margin-bottom: 20px;
-    }
-    #game {
-      background-color: #fff;
-      border: 2px solid #333;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-      display: block;
-      margin: 0 auto 20px;
-    }
-    .game-container {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      max-width: 1000px;
-      margin: 0 auto;
-    }
-    .game-board {
-      position: relative;
-    }
-    .side-info {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    .game-info {
-      text-align: left;
-      background: white;
-      padding: 15px;
-      border-radius: 5px;
-      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-      min-width: 150px;
-    }
-    .hold-area {
-      text-align: center;
-      background: white;
-      padding: 15px;
-      border-radius: 5px;
-      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-      min-width: 150px;
-    }
-    .next-area {
-      text-align: center;
-      background: white;
-      padding: 15px;
-      border-radius: 5px;
-      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-      min-width: 150px;
-    }
-    .info-item {
-      margin-bottom: 10px;
-    }
-    .info-label {
-      font-weight: bold;
-      margin-right: 10px;
-    }
-    #next-piece-canvas, #hold-piece-canvas {
-      background: #f8f8f8;
-      border: 1px solid #ddd;
-      margin-top: 10px;
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    .piece-preview {
-      font-weight: bold;
-      margin-bottom: 10px;
-      color: #333;
-    }
-    .controls-info {
-      margin-top: 20px;
-      font-size: 12px;
-      color: #666;
-      line-height: 1.4;
-    }
-  </style>
+  <link rel="stylesheet" href="src/styles/modern-theme.css">
+  <link rel="stylesheet" href="src/styles/responsive.css">
+  <link rel="stylesheet" href="src/styles/animations.css">
 </head>
 <body>
   <h1>Tetris</h1>
@@ -96,10 +14,10 @@
     <!-- ホールドエリア -->
     <div class="side-info">
       <div class="hold-area">
-        <div class="piece-preview">HOLD</div>
+        <div class="piece-preview">ホールド</div>
         <canvas id="hold-piece-canvas" width="80" height="80"></canvas>
         <div class="controls-info">
-          C or Shift<br>to hold
+          C または Shift<br>でホールド
         </div>
       </div>
     </div>
@@ -112,32 +30,58 @@
     <!-- 次のピースとスコア情報 -->
     <div class="side-info">
       <div class="next-area">
-        <div class="piece-preview">NEXT</div>
-        <canvas id="next-piece-canvas" width="80" height="80"></canvas>
+        <div class="piece-preview">次のピース</div>
+        <div class="next-pieces">
+          <canvas id="next-piece-canvas-1" width="60" height="60" class="next-canvas primary"></canvas>
+          <canvas id="next-piece-canvas-2" width="40" height="40" class="next-canvas secondary"></canvas>
+          <canvas id="next-piece-canvas-3" width="40" height="40" class="next-canvas secondary"></canvas>
+          <canvas id="next-piece-canvas-4" width="30" height="30" class="next-canvas tertiary"></canvas>
+          <canvas id="next-piece-canvas-5" width="30" height="30" class="next-canvas tertiary"></canvas>
+        </div>
       </div>
 
       <div class="game-info" id="game-info-panel">
-        <div class="info-item">
-          <span class="info-label">Score:</span>
-          <span id="score">0</span>
+        <!-- 基本ゲーム情報 -->
+        <div class="info-section">
+          <div class="info-item">
+            <span class="info-label">Score</span>
+            <span class="info-value" id="score">0</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Lines</span>
+            <span class="info-value" id="lines">0</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Level</span>
+            <span class="info-value" id="level">1</span>
+          </div>
         </div>
-        <div class="info-item">
-          <span class="info-label">Lines:</span>
-          <span id="lines">0</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Level:</span>
-          <span id="level">1</span>
-        </div>
+
+
         <div class="controls-info">
-          ← → ↓ ↑ : Move & Rotate<br>
-          Space: Hard Drop<br>
-          T: Switch Theme<br>
-          R: Reset Game
+          <strong>← → ↓ ↑</strong> 移動・回転<br>
+          <strong>Space</strong> ハードドロップ<br>
+          <strong>C/Shift</strong> ホールド<br>
+          <strong>T</strong> テーマ切替<br>
+          <strong>R</strong> リセット
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Touch Controls for Mobile -->
+  <div class="touch-controls">
+    <div class="touch-controls-grid">
+      <button class="touch-btn" data-action="left">←</button>
+      <button class="touch-btn" data-action="rotate">↻</button>
+      <button class="touch-btn" data-action="right">→</button>
+      <button class="touch-btn" data-action="drop">↓</button>
+      <button class="touch-btn hold-btn" data-action="hold">HOLD</button>
+      <button class="touch-btn" data-action="hard-drop">⬇</button>
+      <button class="touch-btn" data-action="reset">R</button>
+    </div>
+  </div>
+
   <script src="./main.js"></script>
 </body>
 </html>

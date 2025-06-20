@@ -105,6 +105,10 @@ export class InputController {
       return;
     }
 
+    // DOMイベントリスナーを登録
+    document.addEventListener('keydown', this.onKeyDown);
+    document.addEventListener('keyup', this.onKeyUp);
+    console.log('[InputController] DOMイベントリスナー登録完了');
 
     this.isListening = true;
   }
@@ -115,12 +119,20 @@ export class InputController {
     }
 
     this.isListening = false;
+    
+    // 内部イベントハンドラーを削除
+    document.removeEventListener('keydown', this.onKeyDown);
+    document.removeEventListener('keyup', this.onKeyUp);
+    
+    // 外部イベントハンドラーも削除（存在する場合）
     if (this.boundOnKeyDown) {
       document.removeEventListener('keydown', this.boundOnKeyDown);
     }
     if (this.boundOnKeyUp) {
       document.removeEventListener('keyup', this.boundOnKeyUp);
     }
+    
+    console.log('[InputController] DOMイベントリスナー削除完了');
   }
 
   onKeyDown(event) {
@@ -187,9 +199,6 @@ export class InputController {
   }
 
   handleHardDrop() {
-
-    const renderer = this.gameApplication.getRenderer();
-    
     if (!this.gameApplication.isRunning()) {
       return;
     }
@@ -200,6 +209,9 @@ export class InputController {
     if (!piece) {
       return;
     }
+
+    // ハードドロップエフェクトを作成
+    this.createHardDropEffect(piece);
 
     // ハードドロップ開始位置を記録
     const startPos = {
@@ -317,6 +329,65 @@ export class InputController {
     this.keyHandlers.delete(key);
   }
 
+
+  // ハードドロップエフェクトを作成
+  createHardDropEffect(piece) {
+    try {
+      // パーティクルエフェクトを作成
+      const gameCanvas = document.getElementById('game');
+      if (!gameCanvas) return;
+
+      // ハードドロップのトレイル効果を作成
+      const startX = piece.pos.x * 30 + 15;
+      const startY = piece.pos.y * 30 + 15;
+
+      // 簡単なパーティクル効果をCanvas上に描画
+      const context = gameCanvas.getContext('2d');
+      
+      // コンテキストが取得できない場合（WebGL使用中など）は処理をスキップ
+      if (!context) {
+        console.warn('[InputController] 2Dコンテキストが取得できません（WebGLレンダラー使用中）');
+        return;
+      }
+      
+      // トレイル効果
+      for (let i = 0; i < 10; i++) {
+        setTimeout(() => {
+          // 各setTimeout内でもコンテキストの有効性を確認
+          if (!context) return;
+          
+          context.save();
+          context.globalAlpha = 0.7 - (i * 0.07);
+          context.fillStyle = '#00f5ff';
+          context.fillRect(startX - 2 + Math.random() * 4, startY + i * 30, 4, 30);
+          context.restore();
+        }, i * 20);
+      }
+
+      // インパクトエフェクト
+      setTimeout(() => {
+        if (!context) return;
+        
+        for (let j = 0; j < 8; j++) {
+          const angle = (Math.PI * 2 * j) / 8;
+          const distance = 20;
+          const endX = startX + Math.cos(angle) * distance;
+          const endY = startY + Math.sin(angle) * distance;
+          
+          context.save();
+          context.globalAlpha = 0.8;
+          context.fillStyle = '#ffed00';
+          context.beginPath();
+          context.arc(endX, endY, 3, 0, Math.PI * 2);
+          context.fill();
+          context.restore();
+        }
+      }, 200);
+
+    } catch (error) {
+      console.error('Error creating hard drop effect:', error);
+    }
+  }
 
   // クリーンアップ
   destroy() {
