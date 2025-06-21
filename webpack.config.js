@@ -8,7 +8,7 @@ const __dirname = dirname(__filename);
 
 export default {
   // エントリーポイントをsrc/main.jsに変更
-  entry: './src/main.js',
+  entry: path.resolve(__dirname, 'src/main.js'),
   output: {
     filename: 'main.js',
     path: path.resolve(__dirname, 'dist'),
