@@ -5,6 +5,8 @@ import { GAME_CONSTANTS } from '../constants/game.js';
 import { InputController } from './InputController.js';
 import { ThemeSelector } from '../ui/ThemeSelector.js';
 import { GameOverOverlay } from '../ui/GameOverOverlay.js';
+import { AudioManager } from '../audio/AudioManager.js';
+import { AudioControls } from '../ui/AudioControls.js';
 
 export class GameApplication {
   constructor(renderer) {
@@ -14,6 +16,8 @@ export class GameApplication {
     this.inputController = null;
     this.themeSelector = null;
     this.gameOverOverlay = null;
+    this.audioManager = null;
+    this.audioControls = null;
     this.isInitialized = false;
   }
 
@@ -40,6 +44,9 @@ export class GameApplication {
       // ゲームオーバーオーバーレイを初期化（DOMContentLoaded後に確実に実行）
       this.initializeGameOverOverlay();
 
+      // 音響システムを初期化
+      this.initializeAudioSystem();
+
       this.isInitialized = true;
       
       return true;
@@ -65,6 +72,8 @@ export class GameApplication {
     // 状態を同期
     this.syncGameState();
     
+    // BGMを再開
+    this.startBGM();
   }
 
   syncGameState() {
@@ -95,6 +104,8 @@ export class GameApplication {
         this.gameStateManager.stopGameLoop();
       }
       
+      // BGMを停止
+      this.stopBGM();
       
       // ゲームオーバーオーバーレイを表示
       if (this.gameOverOverlay) {
@@ -279,5 +290,89 @@ export class GameApplication {
       // すでに読み込み完了している場合は即座に実行
       setTimeout(initOverlay, 0);
     }
+  }
+
+  // 音響システムの初期化
+  initializeAudioSystem() {
+    const initAudio = () => {
+      try {
+        this.audioManager = new AudioManager();
+        this.audioControls = new AudioControls('audio-controls-container', this.audioManager);
+        console.log('[GameApplication] 音響システムを初期化しました');
+      } catch (error) {
+        console.error('[GameApplication] 音響システムの初期化に失敗:', error);
+      }
+    };
+
+    // DOMが完全に読み込まれているかチェック
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initAudio);
+    } else {
+      setTimeout(initAudio, 0);
+    }
+  }
+
+  // BGM再生開始
+  async startBGM() {
+    if (this.audioManager) {
+      await this.audioManager.playBGM();
+      if (this.audioControls) {
+        this.audioControls.syncPlaybackState();
+      }
+    }
+  }
+
+  // BGM停止
+  stopBGM() {
+    if (this.audioManager) {
+      this.audioManager.stopBGM();
+      if (this.audioControls) {
+        this.audioControls.syncPlaybackState();
+      }
+    }
+  }
+
+  // BGM一時停止
+  pauseBGM() {
+    if (this.audioManager) {
+      this.audioManager.pauseBGM();
+      if (this.audioControls) {
+        this.audioControls.syncPlaybackState();
+      }
+    }
+  }
+
+  // BGM再開
+  async resumeBGM() {
+    if (this.audioManager) {
+      await this.audioManager.resumeBGM();
+      if (this.audioControls) {
+        this.audioControls.syncPlaybackState();
+      }
+    }
+  }
+
+  // リソースのクリーンアップ
+  dispose() {
+    // BGMを停止
+    this.stopBGM();
+    
+    // 音響システムを解放
+    if (this.audioManager) {
+      this.audioManager.dispose();
+      this.audioManager = null;
+    }
+    
+    if (this.audioControls) {
+      this.audioControls.dispose();
+      this.audioControls = null;
+    }
+    
+    // その他のリソースクリーンアップ
+    if (this.gameOverOverlay) {
+      this.gameOverOverlay.dispose();
+    }
+    
+    console.log('[GameApplication] リソースをクリーンアップしました');
   }
 }

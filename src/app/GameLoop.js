@@ -18,6 +18,11 @@ export class GameLoop {
     this.lastTime = 0;
     this.dropCounter = 0;
     
+    // BGM再生開始
+    if (this.gameApplication && typeof this.gameApplication.startBGM === 'function') {
+      this.gameApplication.startBGM();
+    }
+    
     // ゲームループを開始
     this.animationFrameId = requestAnimationFrame((time) => this.update(time));
   }
@@ -29,6 +34,11 @@ export class GameLoop {
 
     this.isRunning = false;
     
+    // BGM停止
+    if (this.gameApplication && typeof this.gameApplication.stopBGM === 'function') {
+      this.gameApplication.stopBGM();
+    }
+    
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
@@ -37,13 +47,31 @@ export class GameLoop {
 
   pause() {
     if (this.isRunning) {
-      this.stop();
+      // BGM一時停止
+      if (this.gameApplication && typeof this.gameApplication.pauseBGM === 'function') {
+        this.gameApplication.pauseBGM();
+      }
+      
+      this.isRunning = false;
+      if (this.animationFrameId) {
+        cancelAnimationFrame(this.animationFrameId);
+        this.animationFrameId = null;
+      }
     }
   }
 
   resume() {
     if (!this.isRunning) {
-      this.start();
+      this.isRunning = true;
+      this.lastTime = 0;
+      this.dropCounter = 0;
+      
+      // BGM再開
+      if (this.gameApplication && typeof this.gameApplication.resumeBGM === 'function') {
+        this.gameApplication.resumeBGM();
+      }
+      
+      this.animationFrameId = requestAnimationFrame((time) => this.update(time));
     }
   }
 
