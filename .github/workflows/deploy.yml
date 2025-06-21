@@ -16,6 +16,17 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
+      - name: Check file structure
+        run: |
+          echo "=== Current directory ==="
+          pwd
+          echo "=== Directory contents ==="
+          ls -la
+          echo "=== src directory contents ==="
+          ls -la src/
+          echo "=== Checking for entry files ==="
+          [ -f src/main.js ] && echo "src/main.js exists" || echo "src/main.js MISSING"
+          [ -f src/index.js ] && echo "src/index.js exists" || echo "src/index.js MISSING"
       - run: npm ci
       - run: npm run build
       - name: Deploy to GitHub Pages
